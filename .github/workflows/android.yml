@@ -81,6 +81,10 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
+      - uses: actions/download-artifact@v4
+        with:
+          name: sophia-apk
+          path: distribution
       - name: Ativar KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -96,9 +100,14 @@ jobs:
           script: |
             adb shell svc wifi disable
             adb shell svc data disable
-            gradle :data:connectedDebugAndroidTest :app:connectedDebugAndroidTest --stacktrace
+            ./gradlew :data:connectedDebugAndroidTest :app:connectedDebugAndroidTest --stacktrace
+            adb install -r distribution/Sophia-v0.1.0-debug.apk
+            adb shell am start -W -n com.sophia.enciclopedia/.MainActivity
+            adb shell uiautomator dump /sdcard/Download/Sophia-Test/instalacao.xml
+            adb shell screencap -p /sdcard/Download/Sophia-Test/instalacao.png
             mkdir -p screenshots
-            adb pull /sdcard/Android/data/com.sophia.enciclopedia/files/. screenshots/
+            adb pull /sdcard/Download/Sophia-Test/. screenshots/
+            python3 -c "from pathlib import Path; assert 'Sophia' in Path('screenshots/instalacao.xml').read_text(), 'A aplicação instalada não apresentou o ecrã esperado'"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

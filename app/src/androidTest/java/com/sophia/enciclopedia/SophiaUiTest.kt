@@ -2,7 +2,6 @@ package com.sophia.enciclopedia
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -10,7 +9,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.*
 import org.junit.Assert.*
 import org.junit.runner.RunWith
-import java.io.File
+import java.io.FileInputStream
 
 @RunWith(AndroidJUnit4::class)
 class SophiaUiTest {
@@ -19,7 +18,9 @@ class SophiaUiTest {
     private fun awaitTag(tag:String,present:Boolean=true){ui.waitUntil(15000){ui.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()==present}}
     private fun awaitText(text:String,present:Boolean=true){ui.waitUntil(15000){ui.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()==present}}
     private fun nav(id:String){ui.onNodeWithTag("nav-$id").performClick();ui.waitForIdle()}
-    private fun shot(name:String){val instrumentation=InstrumentationRegistry.getInstrumentation();val bitmap=instrumentation.uiAutomation.takeScreenshot();File(instrumentation.targetContext.getExternalFilesDir(null),"$name.png").outputStream().use{bitmap.compress(Bitmap.CompressFormat.PNG,100,it)}}
+    private fun shell(command:String){InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand(command).use{fd->FileInputStream(fd.fileDescriptor).use{it.readBytes()}}}
+    private fun shot(name:String){ui.waitForIdle();shell("mkdir -p /sdcard/Download/Sophia-Test");shell("screencap -p /sdcard/Download/Sophia-Test/$name.png")}
+
     @Test fun completeOfflineJourney(){
         ready();nav("HOME");ui.onNodeWithTag("theme-settings").performClick();ui.onNodeWithTag("theme-LIGHT").performClick();ui.waitUntil(15000){ui.activity.model.state.value.theme==com.sophia.domain.ThemeMode.LIGHT};shot("01-inicio")
         assertEquals(PackageManager.PERMISSION_DENIED,ui.activity.checkSelfPermission(Manifest.permission.INTERNET))
