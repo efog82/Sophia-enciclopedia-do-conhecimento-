@@ -1,0 +1,54 @@
+package com.sophia.enciclopedia
+
+import android.Manifest
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import androidx.compose.ui.test.*
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import org.junit.*
+import org.junit.Assert.*
+import org.junit.runner.RunWith
+import java.io.File
+
+@RunWith(AndroidJUnit4::class)
+class SophiaUiTest {
+    @get:Rule val ui=createAndroidComposeRule<MainActivity>()
+    private fun ready(){ui.waitUntil(15000){ui.onAllNodesWithTag("home-screen").fetchSemanticsNodes().isNotEmpty() || ui.onAllNodesWithTag("library-screen").fetchSemanticsNodes().isNotEmpty()}}
+    private fun nav(id:String){ui.onNodeWithTag("nav-$id").performClick();ui.waitForIdle()}
+    private fun shot(name:String){val instrumentation=InstrumentationRegistry.getInstrumentation();val bitmap=instrumentation.uiAutomation.takeScreenshot();File(instrumentation.targetContext.getExternalFilesDir(null),"$name.png").outputStream().use{bitmap.compress(Bitmap.CompressFormat.PNG,100,it)}}
+    @Test fun completeOfflineJourney(){
+        ready();nav("HOME");shot("01-inicio")
+        assertEquals(PackageManager.PERMISSION_DENIED,ui.activity.checkSelfPermission(Manifest.permission.INTERNET))
+        nav("LIBRARY");ui.onNodeWithTag("library-search").performTextReplacement("kardec")
+        ui.onNodeWithTag("library-count").assertTextEquals("1 obra encontrada")
+        ui.onNodeWithTag("book-spirits").performScrollTo().performClick();ui.onNodeWithTag("book-details").assertExists()
+        ui.onNodeWithTag("detail-favorite").performScrollTo().performClick()
+        ui.onNodeWithText("Remover dos favoritos").assertExists()
+        ui.onNodeWithText("Fechar detalhes").performScrollTo().performClick()
+        ui.activityRule.scenario.recreate();ui.onNodeWithTag("library-search").assertTextContains("kardec")
+        ui.onNodeWithTag("favorite-spirits").assertContentDescriptionEquals("Remover dos favoritos: O Livro dos Espíritos")
+        shot("02-biblioteca")
+        nav("RESEARCH");ui.onNodeWithTag("research-search").performTextInput("budismo");ui.onNodeWithText("1 resultados de metadados").assertExists()
+        nav("AI");ui.onNodeWithText("Em desenvolvimento · fase futura").assertExists();shot("03-assistente")
+        nav("NOTES");ui.onNodeWithTag("new-note").performClick()
+        ui.onNodeWithTag("note-title").performTextInput("Reflexão offline")
+        ui.onNodeWithTag("note-body").performTextInput("Comparar fontes e tradições.")
+        ui.onNodeWithTag("save-note").performScrollTo().performClick()
+        ui.onNodeWithText("Reflexão offline").performClick()
+        ui.onNodeWithTag("note-body").performTextReplacement("Apontamento revisto.")
+        ui.onNodeWithTag("save-note").performScrollTo().performClick()
+        ui.activityRule.scenario.recreate();ui.onNodeWithText("Apontamento revisto.").assertExists();shot("04-caderno")
+        ui.onNodeWithContentDescription("Eliminar nota: Reflexão offline").performClick()
+        ui.onNodeWithText("Cancelar").performClick();ui.onNodeWithText("Reflexão offline").assertExists()
+        ui.onNodeWithContentDescription("Eliminar nota: Reflexão offline").performClick()
+        ui.onNodeWithTag("confirm-delete-note").performClick();ui.onNodeWithText("Reflexão offline").assertDoesNotExist()
+        ui.onNodeWithTag("new-note").performClick();ui.onNodeWithTag("note-title").performTextInput("Rascunho")
+        ui.activityRule.scenario.recreate();ui.onNodeWithTag("note-title").assertTextContains("Rascunho")
+        ui.onNodeWithTag("cancel-note").performScrollTo().performClick();ui.onNodeWithTag("confirm-discard").performClick()
+        ui.onNodeWithText("Rascunho").assertDoesNotExist()
+        nav("HOME");ui.onNodeWithTag("theme-settings").performClick();ui.onNodeWithTag("theme-DARK").performClick();shot("05-inicio-escuro")
+        ui.activityRule.scenario.recreate();ui.onNodeWithTag("home-screen").assertExists()
+    }
+}
