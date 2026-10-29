@@ -54,14 +54,15 @@ import java.util.Locale
         item{SectionTitle("A tua biblioteca","Referências, ficheiros offline e listas de leitura.")}
         item{Button(onClick=onImport,modifier=Modifier.fillMaxWidth().testTag("import-file")){Icon(Icons.Outlined.FileOpen,null);Text("Importar EPUB, PDF ou TXT",Modifier.padding(start=8.dp))}}
         item{Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedButton(onClick=onCollections,modifier=Modifier.weight(1f).testTag("open-collections")){Text("Coleções e listas")};OutlinedButton(onClick=onTraditions,modifier=Modifier.weight(1f)){Text("Tradições")}}}
-        if(library.files.isNotEmpty()){
-            item{SectionTitle("Ficheiros offline")}
-            items(library.files,key={"file-${it.id}"}){file->FileCard(file){onRead(file)}}
-        }
         item{SearchInput(state.filters.libraryQuery,{q->vm.setFilters{it.copy(libraryQuery=q)}},"Título ou autor","library-search")}
         item{Row(horizontalArrangement=Arrangement.spacedBy(10.dp)){SelectFilter("Tradição",state.filters.tradition,state.traditions.map{it.id to it.name},{id->vm.setFilters{it.copy(tradition=id)}},Modifier.weight(1f));SelectFilter("Categoria",state.filters.category,state.categories.map{it.id to it.name},{id->vm.setFilters{it.copy(category=id)}},Modifier.weight(1f))}}
         item{Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){FilterChip(selected=state.filters.favorites,onClick={vm.setFilters{it.copy(favorites=!it.favorites)}},label={Text("Favoritos")},leadingIcon={Icon(Icons.Outlined.BookmarkBorder,null,Modifier.size(16.dp))},modifier=Modifier.testTag("favorites-filter"));Spacer(Modifier.weight(1f));TextButton(onClick={vm.setFilters{it.copy(libraryQuery="",tradition=null,category=null,favorites=false)}}){Text("Limpar filtros")}}}
         item{Text("${state.library.size} ${if(state.library.size==1)"obra encontrada" else "obras encontradas"}",style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.testTag("library-count"))}
+        val filteredFiles=library.files.filter{file->state.library.any{it.id==file.workId}}
+        if(filteredFiles.isNotEmpty()){
+            item{SectionTitle("Ficheiros offline")}
+            items(filteredFiles,key={"file-${it.id}"}){file->FileCard(file){onRead(file)}}
+        }
         if(state.library.isEmpty())item{EmptyPanel(if(state.filters.favorites)"Ainda não há favoritos neste filtro" else "Nenhuma obra encontrada","Experimenta outro título, autor ou tradição, ou limpa os filtros.",Icons.Outlined.SearchOff)}
         items(state.library,key={it.id}){book->BookCard(book,book.id in busy,{vm.openBook(book.id)},{vm.toggleFavorite(book)})}
         item{Spacer(Modifier.height(16.dp))}

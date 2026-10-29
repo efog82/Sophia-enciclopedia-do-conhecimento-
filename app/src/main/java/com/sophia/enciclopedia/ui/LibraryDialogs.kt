@@ -38,21 +38,43 @@ import com.sophia.enciclopedia.*
     }
 }
 @Composable fun CollectionsDialog(state:SophiaState,library:LibrarySnapshot,vm:LibraryViewModel,onClose:()->Unit,onBook:(String)->Unit){
-    var name by rememberSaveable{mutableStateOf("")};var readingList by rememberSaveable{mutableStateOf(false)};var delete by rememberSaveable{mutableStateOf<String?>(null)}
+    var name by rememberSaveable{mutableStateOf("")}
+    var readingList by rememberSaveable{mutableStateOf(false)}
+    var delete by rememberSaveable{mutableStateOf<String?>(null)}
     LibraryDialog("Coleções e listas de leitura",onClose){
         Text("Adiciona obras a partir dos respetivos detalhes. As listas permitem definir uma ordem de leitura.")
         OutlinedTextField(name,{if(it.length<=120)name=it},label={Text("Nome da coleção")},modifier=Modifier.fillMaxWidth().testTag("collection-name"))
         Row(verticalAlignment=Alignment.CenterVertically){Checkbox(readingList,{readingList=it});Text("Lista de leitura ordenada")}
         Button(onClick={vm.createCollection(name,readingList);name=""},enabled=name.isNotBlank(),modifier=Modifier.testTag("create-collection")){Text("Criar")}
         if(library.collections.isEmpty())EmptyPanel("Ainda não há coleções","Cria uma coleção ou lista para organizar as tuas obras.")
-        library.collections.forEach{c->OutlinedCard(Modifier.fillMaxWidth()){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
-            Row(verticalAlignment=Alignment.CenterVertically){Text(c.name,Modifier.weight(1f),style=MaterialTheme.typography.titleMedium);IconButton(onClick={delete=c.id}){Icon(Icons.Outlined.DeleteOutline,"Eliminar coleção: ${c.name}")}}
-            Text(if(c.readingList)"Lista de leitura" else "Coleção",style=MaterialTheme.typography.labelSmall)
-            if(c.workIds.isEmpty())Text("Ainda sem obras.")
-            c.workIds.forEachIndexed{i,id->state.books.firstOrNull{it.id==id}?.let{book->Column{TextButton(onClick={onBook(id)}){Text("${i+1}. ${book.title}")};Row{if(c.readingList){IconButton(onClick={vm.move(c.id,id,-1)},enabled=i>0){Icon(Icons.Outlined.KeyboardArrowUp,"Subir: ${book.title}")};IconButton(onClick={vm.move(c.id,id,1)},enabled=i<c.workIds.lastIndex){Icon(Icons.Outlined.KeyboardArrowDown,"Descer: ${book.title}")}};TextButton(onClick={vm.setInCollection(c.id,id,false)}){Text("Remover da lista")}}}}
-        }}}
+        library.collections.forEach{collection->
+            OutlinedCard(Modifier.fillMaxWidth()){
+                Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
+                    Row(verticalAlignment=Alignment.CenterVertically){
+                        Text(collection.name,Modifier.weight(1f),style=MaterialTheme.typography.titleMedium)
+                        IconButton(onClick={delete=collection.id}){Icon(Icons.Outlined.DeleteOutline,"Eliminar coleção: ${collection.name}")}
+                    }
+                    Text(if(collection.readingList)"Lista de leitura" else "Coleção",style=MaterialTheme.typography.labelSmall)
+                    if(collection.workIds.isEmpty())Text("Ainda sem obras.")
+                    collection.workIds.forEachIndexed{index,id->
+                        state.books.firstOrNull{it.id==id}?.let{book->
+                            TextButton(onClick={onBook(id)}){Text("${index+1}. ${book.title}")}
+                            Row{
+                                if(collection.readingList){
+                                    IconButton(onClick={vm.move(collection.id,id,-1)},enabled=index>0){Icon(Icons.Outlined.KeyboardArrowUp,"Subir: ${book.title}")}
+                                    IconButton(onClick={vm.move(collection.id,id,1)},enabled=index<collection.workIds.lastIndex){Icon(Icons.Outlined.KeyboardArrowDown,"Descer: ${book.title}")}
+                                }
+                                TextButton(onClick={vm.setInCollection(collection.id,id,false)}){Text("Remover da lista")}
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
-    delete?.let{id->AlertDialog(onDismissRequest={delete=null},title={Text("Eliminar coleção?")},text={Text("Apenas a organização será eliminada. As obras, ficheiros, favoritos e notas serão conservados.")},confirmButton={TextButton(onClick={vm.deleteCollection(id);delete=null}){Text("Eliminar")}},dismissButton={TextButton(onClick={delete=null}){Text("Cancelar")}})}
+    delete?.let{id->
+        AlertDialog(onDismissRequest={delete=null},title={Text("Eliminar coleção?")},text={Text("Apenas a organização será eliminada. As obras, ficheiros, favoritos e notas serão conservados.")},confirmButton={TextButton(onClick={vm.deleteCollection(id);delete=null}){Text("Eliminar")}},dismissButton={TextButton(onClick={delete=null}){Text("Cancelar")}})
+    }
 }
 @Composable fun ImportDialog(uri:String,initialWork:String?,books:List<Book>,busy:Boolean,message:String?,onClose:()->Unit,onImport:(ImportRequest)->Unit){
     var work by rememberSaveable(uri){mutableStateOf(initialWork)};var title by rememberSaveable(uri){mutableStateOf("")};var authorised by rememberSaveable(uri){mutableStateOf(false)}
