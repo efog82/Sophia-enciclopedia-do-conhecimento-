@@ -1,0 +1,34 @@
+[
+  {
+    "id": "pg-26776",
+    "gutenberg": 26776,
+    "title": "A philosophia da natureza dos naturalistas",
+    "author": "Antero de Quental",
+    "authorDied": 1891,
+    "tradition": "ancient-philosophy",
+    "description": "Ensaio filosófico português sobre naturalismo e metafísica. Texto histórico: as suas teses não representam consenso científico atual.",
+    "source": "https://www.gutenberg.org/ebooks/26776",
+    "file": "pg-26776.epub",
+    "sha256": "9faad0c8fac5a3caede3bffa75831a528b6bbb8facdc571bc9a059bb320d95bd",
+    "language": "pt-PT",
+    "spelling": "Português de Portugal histórico; ortografia original conservada.",
+    "rights": "PUBLIC_DOMAIN_PT_US",
+    "rightsBasis": "Obra original de autor português falecido em 1891; mais de 70 anos após a morte. Edição histórica disponibilizada pelo Project Gutenberg como domínio público nos EUA, com créditos da Biblioteca Nacional de Portugal. EPUB e licença mantidos sem alterações."
+  },
+  {
+    "id": "pg-23526",
+    "gutenberg": 23526,
+    "title": "A Velhice do Padre Eterno",
+    "author": "Guerra Junqueiro",
+    "authorDied": 1923,
+    "tradition": "christianity",
+    "description": "Obra poética portuguesa de crítica religiosa e institucional. Representa a perspetiva do autor, não uma apresentação normativa do Cristianismo.",
+    "source": "https://www.gutenberg.org/ebooks/23526",
+    "file": "pg-23526.epub",
+    "sha256": "3b07496ade7a6df15ea828541619fdc4c9886b605dcb15df491cd19adf42c03a",
+    "language": "pt-PT",
+    "spelling": "Português de Portugal histórico; ortografia original conservada.",
+    "rights": "PUBLIC_DOMAIN_PT_US",
+    "rightsBasis": "Obra original de autor português falecido em 1923; mais de 70 anos após a morte. Edição histórica disponibilizada pelo Project Gutenberg como domínio público nos EUA, com créditos da Biblioteca Nacional de Portugal. EPUB e licença mantidos sem alterações."
+  }
+]
