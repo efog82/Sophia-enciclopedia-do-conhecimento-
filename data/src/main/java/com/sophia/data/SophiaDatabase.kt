@@ -39,13 +39,34 @@ interface NotesDao {
     @Upsert suspend fun save(value:NoteEntity)
     @Query("DELETE FROM study_notes WHERE id=:id") suspend fun delete(id:String)
 }
-@Database(entities=[WorkEntity::class,PersonEntity::class,TraditionEntity::class,CategoryEntity::class,WorkContributorEntity::class,WorkTraditionEntity::class,WorkCategoryEntity::class,TranslationEntity::class,EditionEntity::class,EditionContributorEntity::class,BookFileEntity::class,FavoriteEntity::class,ReadingProgressEntity::class,NoteEntity::class,CatalogMetadataEntity::class],version=1,exportSchema=true)
+@Database(entities=[WorkEntity::class,PersonEntity::class,TraditionEntity::class,CategoryEntity::class,WorkContributorEntity::class,WorkTraditionEntity::class,WorkCategoryEntity::class,TranslationEntity::class,EditionEntity::class,EditionContributorEntity::class,BookFileEntity::class,FavoriteEntity::class,ReadingProgressEntity::class,NoteEntity::class,CatalogMetadataEntity::class,BookmarkEntity::class,StudyCollectionEntity::class,CollectionWorkEntity::class],version=2,exportSchema=true)
 abstract class SophiaDatabase:RoomDatabase() {
     abstract fun catalog():CatalogDao
     abstract fun notes():NotesDao
+    abstract fun library():LibraryDao
     companion object {
         fun open(context:Context,name:String="sophia.db"):SophiaDatabase=Room.databaseBuilder(context.applicationContext,SophiaDatabase::class.java,name).addMigrations(*DatabaseMigrations.ALL).build()
     }
 }
 /** First schema: no fictitious upgrade. Future migrations must be explicit, exported and tested. */
-object DatabaseMigrations { val ALL:Array<Migration> = emptyArray() }
+object DatabaseMigrations {
+    val V1_TO_V2=object:Migration(1,2){override fun migrate(db:androidx.sqlite.db.SupportSQLiteDatabase){
+        db.execSQL("ALTER TABLE traditions ADD COLUMN historicalContext TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE traditions ADD COLUMN concepts TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE traditions ADD COLUMN sources TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE editions ADD COLUMN rightsStatus TEXT NOT NULL DEFAULT 'UNVERIFIED'")
+        db.execSQL("ALTER TABLE book_files ADD COLUMN displayName TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE book_files ADD COLUMN addedAt INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE study_notes ADD COLUMN fileId TEXT REFERENCES book_files(id) ON DELETE SET NULL")
+        db.execSQL("ALTER TABLE study_notes ADD COLUMN locatorJson TEXT")
+        db.execSQL("ALTER TABLE study_notes ADD COLUMN excerpt TEXT")
+        db.execSQL("CREATE INDEX index_study_notes_fileId ON study_notes(fileId)")
+        db.execSQL("CREATE TABLE IF NOT EXISTS bookmarks (id TEXT NOT NULL PRIMARY KEY, fileId TEXT NOT NULL, locatorJson TEXT NOT NULL, label TEXT NOT NULL, createdAt INTEGER NOT NULL, FOREIGN KEY(fileId) REFERENCES book_files(id) ON UPDATE NO ACTION ON DELETE CASCADE)")
+        db.execSQL("CREATE INDEX index_bookmarks_fileId ON bookmarks(fileId)")
+        db.execSQL("CREATE UNIQUE INDEX index_bookmarks_fileId_locatorJson ON bookmarks(fileId,locatorJson)")
+        db.execSQL("CREATE TABLE IF NOT EXISTS study_collections (id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, readingList INTEGER NOT NULL, createdAt INTEGER NOT NULL)")
+        db.execSQL("CREATE TABLE IF NOT EXISTS collection_works (collectionId TEXT NOT NULL, workId TEXT NOT NULL, position INTEGER NOT NULL, PRIMARY KEY(collectionId,workId), FOREIGN KEY(collectionId) REFERENCES study_collections(id) ON UPDATE NO ACTION ON DELETE CASCADE, FOREIGN KEY(workId) REFERENCES works(id) ON UPDATE NO ACTION ON DELETE CASCADE)")
+        db.execSQL("CREATE INDEX index_collection_works_workId ON collection_works(workId)")
+    }}
+    val ALL:Array<Migration> = arrayOf(V1_TO_V2)
+}

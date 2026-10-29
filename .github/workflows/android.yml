@@ -1,7 +1,7 @@
 name: Sophia Android
 on:
   push:
-    branches: [main]
+    branches: [main, feature/fase-2-biblioteca]
   workflow_dispatch:
 permissions:
   contents: read
@@ -39,10 +39,10 @@ jobs:
       - name: Preparar APK e verificações
         run: |
           mkdir -p distribution
-          cp app/build/outputs/apk/debug/app-debug.apk distribution/Sophia-v0.1.0-debug.apk
+          cp app/build/outputs/apk/debug/app-debug.apk distribution/Sophia-v0.2.0-debug.apk
           cd distribution
-          sha256sum Sophia-v0.1.0-debug.apk > SHA256SUMS.txt
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs Sophia-v0.1.0-debug.apk > assinatura.txt
+          sha256sum Sophia-v0.2.0-debug.apk > SHA256SUMS.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs Sophia-v0.2.0-debug.apk > assinatura.txt
       - uses: actions/upload-artifact@v4
         with:
           name: sophia-apk
@@ -101,7 +101,7 @@ jobs:
             adb shell svc wifi disable
             adb shell svc data disable
             ./gradlew :data:connectedDebugAndroidTest :app:connectedDebugAndroidTest --stacktrace
-            adb install -r distribution/Sophia-v0.1.0-debug.apk
+            adb install -r distribution/Sophia-v0.2.0-debug.apk
             adb shell am start -W -n com.sophia.enciclopedia/.MainActivity
             adb shell uiautomator dump /sdcard/Download/Sophia-Test/instalacao.xml
             adb shell screencap -p /sdcard/Download/Sophia-Test/instalacao.png
@@ -119,6 +119,7 @@ jobs:
             app/build/reports/androidTests/
             screenshots/
   release:
+    if: github.ref == 'refs/heads/main'
     needs: [build, android-tests]
     runs-on: ubuntu-24.04
     permissions:
@@ -133,4 +134,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create sophia-v0.1.0 distribution/* --target "$GITHUB_SHA" --prerelease --title 'Sophia v0.1.0 — Fase 1' --notes 'Primeira versão offline: catálogo bibliográfico, pesquisa de metadados, favoritos, notas e tema persistentes. Assistente IA explicitamente em desenvolvimento. Sem livros integrais ou ficheiros incluídos. APK debug assinado, Android 8.0 ou superior. Consulte README e documentação de testes no repositório. Publicação condicionada a testes unitários, Android e lint.'
+          gh release create sophia-v0.2.0 distribution/* --target "$GITHUB_SHA" --prerelease --title 'Sophia v0.2.0 — Fase 2' --notes 'Primeira versão offline: catálogo bibliográfico, pesquisa de metadados, favoritos, notas e tema persistentes. Assistente IA explicitamente em desenvolvimento. Sem livros integrais ou ficheiros incluídos. APK debug assinado, Android 8.0 ou superior. Consulte README e documentação de testes no repositório. Publicação condicionada a testes unitários, Android e lint.'

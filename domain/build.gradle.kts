@@ -1,6 +1,7 @@
 plugins { id("org.jetbrains.kotlin.jvm") }
 kotlin { jvmToolchain(17) }
 dependencies {
+    implementation("org.jsoup:jsoup:1.18.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
     testImplementation(kotlin("test-junit"))
 }
