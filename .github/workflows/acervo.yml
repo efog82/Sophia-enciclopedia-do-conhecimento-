@@ -1,0 +1,31 @@
+name: Preparar acervo português verificado
+on:
+  push:
+    branches: [feature/fase-3-estudo]
+    paths: ['tools/prepare_bundled_books.py', '.github/workflows/acervo.yml']
+permissions:
+  contents: write
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/fase-3-estudo
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Obter duas edições revistas, validar idioma e conservar licença
+        run: python3 tools/prepare_bundled_books.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sophia-acervo-portugues
+          path: app/src/main/assets/books/
+      - name: Registar apenas os ficheiros do acervo na branch de desenvolvimento
+        run: |
+          git config user.name 'Sophia build'
+          git config user.email 'sophia-build@users.noreply.github.com'
+          git add app/src/main/assets/books/
+          git diff --cached --quiet && exit 0
+          git commit -m 'content: incluir duas obras portuguesas integrais com proveniência e licença'
+          git push origin HEAD:feature/fase-3-estudo
