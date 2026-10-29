@@ -1,0 +1,54 @@
+name: Sophia 0.4.0 Preview APK
+on:
+  push:
+    branches: [feature/v0.4.0-revisao-editorial]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - uses: actions/cache@v4
+        with:
+          path: .sophia-signing/debug.keystore
+          key: sophia-debug-signing-v2-workspace
+      - name: Recover existing signing certificate
+        env:
+          SOPHIA_KEYSTORE_B64: ${{ secrets.SOPHIA_SIGNING_KEYSTORE_B64 }}
+        run: |
+          mkdir -p .sophia-signing
+          if [ -n "$SOPHIA_KEYSTORE_B64" ]; then
+            python3 -c "import os,base64; from pathlib import Path; Path('.sophia-signing/debug.keystore').write_bytes(base64.b64decode(os.environ['SOPHIA_KEYSTORE_B64']))"
+          fi
+          test -f .sophia-signing/debug.keystore || { echo 'Original signing key unavailable'; exit 1; }
+      - name: Install Android SDK
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Compile preview APK (without tests)
+        run: ./gradlew -PsophiaSigningStore=.sophia-signing/debug.keystore :app:assembleDebug --stacktrace
+      - name: Verify matching signature
+        run: |
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs app/build/outputs/apk/debug/app-debug.apk > /tmp/sophia-certs.txt
+          grep -qi '9788c0e73c9653cdf3e3dbbb1ae362bd740408b47f32c5290da40f5fa5de8b1e' /tmp/sophia-certs.txt
+      - name: Name APK
+        run: |
+          mkdir -p distribution
+          cp app/build/outputs/apk/debug/app-debug.apk distribution/Sophia-v0.4.0-preview.apk
+          cd distribution && sha256sum Sophia-v0.4.0-preview.apk > SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Sophia-v0.4.0-preview
+          path: distribution/
