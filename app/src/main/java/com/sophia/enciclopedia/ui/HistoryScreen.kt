@@ -15,7 +15,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.sophia.enciclopedia.SophiaState
-import com.sophia.domain.ExtendedHistory
 
 @Composable fun TraditionsDialog(state:SophiaState,initialTopic:String?,onClose:()->Unit,onBook:(String)->Unit,onResearch:(String)->Unit){
     var selected by rememberSaveable(initialTopic){mutableStateOf(initialTopic)}
@@ -38,25 +37,6 @@ import com.sophia.domain.ExtendedHistory
                         SelectionContainer{Text(section.text,style=MaterialTheme.typography.bodyLarge)}
                         Text("Fontes: "+section.sources.joinToString{ "[$it]" },style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.secondary)
                     }}
-                    // Optional pilot: the 0.3.0 historical text stays in place and is not overwritten.
-                    val supplement=ExtendedHistory.pilot[article.id]
-                    if(supplement!=null){
-                        item{
-                            var expanded by rememberSaveable(article.id){mutableStateOf(false)}
-                            Column(verticalArrangement=Arrangement.spacedBy(8.dp)){
-                                OutlinedButton(onClick={expanded=!expanded},modifier=Modifier.fillMaxWidth().testTag("extended-history-toggle")){
-                                    Text(if(expanded)"Ocultar complemento histórico (v0.4.0)" else "Ler complemento histórico (v0.4.0 · em revisão)")
-                                }
-                                if(expanded){
-                                    Text("Conteúdo complementar em revisão editorial. O artigo original da v0.3.0 mantém-se acima.",style=MaterialTheme.typography.bodySmall)
-                                    supplement.forEach{section->
-                                        Text(section.heading,style=MaterialTheme.typography.titleMedium)
-                                        SelectionContainer{Text(section.narrative,style=MaterialTheme.typography.bodyLarge)}
-                                    }
-                                }
-                            }
-                        }
-                    }
                     if(article.concepts.isNotBlank())item{SectionTitle("Conceitos fundamentais");Text(article.concepts,Modifier.padding(top=8.dp))}
                     val references=state.books.filter{book->if(article.area)book.categories.any{it.id==article.id} else book.traditions.any{it.id==article.id}}
                     item{SectionTitle("Livros de referência e autores","Lista bibliográfica · não inclui textos integrais. As capas ilustrativas não reproduzem edições comerciais.")}
