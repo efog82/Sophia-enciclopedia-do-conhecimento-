@@ -23,7 +23,7 @@ class ReaderViewModel(private val library:LocalLibraryRepository,private val not
     private val positions=MutableSharedFlow<ReadingLocation>(extraBufferCapacity=1,onBufferOverflow=BufferOverflow.DROP_OLDEST)
     private val writing=Mutex();private var rendering:Job?=null
     init{load();viewModelScope.launch{positions.debounce(400).collect{save(it)}}}
-    fun load(){viewModelScope.launch{_state.value=ReaderState();try{
+    fun load(){viewModelScope.launch{android.util.Log.d("SophiaReaderState","load model=${System.identityHashCode(this@ReaderViewModel)}");_state.value=ReaderState();try{
         val info=library.file(id);val document=library.document(id);val local=library.localFile(id)
         require(document.units.isNotEmpty()){"O ficheiro não contém páginas ou recursos de leitura."}
         val location=initial?.let{LocationCodec.decode(it)}?:info.location?:ReadingLocation()
@@ -33,7 +33,7 @@ class ReaderViewModel(private val library:LocalLibraryRepository,private val not
     private fun current()=ReadingLocation(_state.value.unit,_state.value.fraction)
     private suspend fun save(location:ReadingLocation){try{writing.withLock{val count=_state.value.document?.units?.size?:return;library.savePosition(id,location,(((location.unit+location.fraction)/count)*1000).toInt().coerceIn(0,1000))}}catch(e:CancellationException){throw e}catch(e:Exception){_message.value="Não foi possível guardar a posição de leitura."}}
     fun scroll(fraction:Double){if(!_state.value.loading){_state.value=_state.value.copy(fraction=fraction.coerceIn(0.0,1.0));positions.tryEmit(current())}}
-    fun go(unit:Int,fraction:Double=0.0){val count=_state.value.document?.units?.size?:return;if(unit !in 0 until count)return;_state.value=_state.value.copy(unit=unit,fraction=fraction.coerceIn(0.0,1.0),bitmap=null);render();positions.tryEmit(current())}
+    fun go(unit:Int,fraction:Double=0.0){android.util.Log.d("SophiaReaderState","go model=${System.identityHashCode(this)} from=${_state.value.unit} to=$unit");val count=_state.value.document?.units?.size?:return;if(unit !in 0 until count)return;_state.value=_state.value.copy(unit=unit,fraction=fraction.coerceIn(0.0,1.0),bitmap=null);render();positions.tryEmit(current())}
     private fun render(){rendering?.cancel();if(_state.value.info?.mimeType!="application/pdf")return;val unit=_state.value.unit;rendering=viewModelScope.launch{try{val bitmap=library.pdfPage(id,unit);if(_state.value.unit==unit)_state.value=_state.value.copy(bitmap=bitmap)}catch(e:CancellationException){throw e}catch(e:Exception){_message.value="Não foi possível renderizar esta página PDF."}}}
     fun bookmark(){viewModelScope.launch{try{val s=_state.value;library.addBookmark(id,s.document!!.units[s.unit].title,current());_message.value="Marcador guardado."}catch(e:CancellationException){throw e}catch(e:Exception){_message.value="Não foi possível guardar o marcador."}}}
     fun deleteBookmark(id:String){viewModelScope.launch{try{library.deleteBookmark(id)}catch(e:CancellationException){throw e}catch(e:Exception){_message.value="Não foi possível eliminar o marcador."}}}

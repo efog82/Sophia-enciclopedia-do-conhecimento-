@@ -90,6 +90,7 @@ private data class LocalHtmlPage(val key:String,val html:String?=null,val error:
         }},update={reader->
             val html=page.html
             if(page.key==requestKey && html!=null && reader.loadedKey!=requestKey){
+                android.util.Log.d("SophiaReaderState","render unit=${state.unit} font=$font")
                 reader.loadedKey=requestKey
                 reader.restoring=true
                 reader.onScroll=vm::scroll
@@ -112,6 +113,7 @@ private data class LocalHtmlPage(val key:String,val html:String?=null,val error:
                     }
                     override fun shouldOverrideUrlLoading(view:WebView,request:WebResourceRequest):Boolean{
                         val url=request.url
+                        android.util.Log.d("SophiaReaderState","navigation gesture=${request.hasGesture()} redirect=${request.isRedirect} unit=${state.unit}")
                         if(url.scheme=="https"&&url.host=="sophia.invalid"){
                             // Reloads from a previous resource must not navigate the ViewModel backwards.
                             // Only a deliberate link tap may change the reading position.
