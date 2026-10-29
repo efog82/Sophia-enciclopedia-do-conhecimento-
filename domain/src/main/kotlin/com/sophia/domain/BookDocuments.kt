@@ -20,7 +20,7 @@ object BookDocuments {
     private const val MAX_RESOURCE_BYTES=8*1024*1024
     fun normalizedPath(base:String,relative:String):String {
         require(!relative.contains('\\') && !relative.contains('\u0000')){"Caminho inválido no EPUB."}
-        val uri=URI(relative)
+        val uri=try{URI(relative)}catch(e:java.net.URISyntaxException){throw IllegalArgumentException("O EPUB contém um caminho de recurso inválido.",e)}
         require(!uri.isAbsolute && uri.rawAuthority==null && !relative.startsWith("/")){"O EPUB contém um recurso externo ou um caminho absoluto não suportado."}
         val decoded=uri.path.orEmpty();val stack=base.substringBeforeLast('/',"").split('/').filter{it.isNotEmpty()}.toMutableList()
         decoded.split('/').forEach{part->when(part){"","."->Unit;".."->{require(stack.isNotEmpty()){"Caminho fora do EPUB."};stack.removeAt(stack.lastIndex)};else->{require(!part.contains('\\')&&!part.contains('\u0000'));stack+=part}}}
@@ -56,12 +56,12 @@ object BookDocuments {
             val item=manifest[spine.attr("idref")]?:error("O índice de leitura refere um recurso inexistente.")
             require(item.attr("media-type") in listOf("application/xhtml+xml","text/html")){"Recurso de leitura EPUB incompatível: ${item.attr("media-type")}"}
             val href=normalizedPath(opfPath,item.attr("href"));val body=Jsoup.parse(resource(file,href).toString(Charsets.UTF_8))
-            val label=body.selectFirst("h1,h2,title")?.text()?.takeIf{it.isNotBlank()}?:"Recurso ${index+1} · ${href.substringAfterLast('/')}"
+            val label=(body.selectFirst("h1,h2")?:body.selectFirst("title"))?.text()?.takeIf{it.isNotBlank()}?:"Recurso ${index+1} · ${href.substringAfterLast('/')}"
             ReadingUnit(href,label)
         }
         require(units.isNotEmpty()){"O EPUB não tem recursos de leitura."}
         val authors=opf.getAllElements().filter{it.normalName().substringAfterLast(':')=="creator"}.map{it.text().trim()}.filter{it.isNotEmpty()}.distinct()
-        return BookDocument(FileMetadata(field("title"),authors,field("language"),field("publisher"),field("date")?.take(4)?.toIntOrNull()),units,true)
+        return BookDocument(FileMetadata(field("title"),authors,field("language"),field("publisher"),field("date")?.take(4)?.toIntOrNull()?.takeIf{it in 1..9999}),units,true)
     }
     fun text(file:File):BookDocument {
         require(file.length()<=16L*1024*1024){"TXT demasiado grande para este leitor (máximo 16 MiB)."}

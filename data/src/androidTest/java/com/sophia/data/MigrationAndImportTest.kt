@@ -47,6 +47,9 @@ class MigrationAndImportTest {
         assertEquals(ReadingLocation(1,.3),repo.file(result.fileId).location)
         val note=RoomNotesRepository(db).save(null,"Nota ligada","Apontamento","spirits",result.fileId,LocationCodec.encode(ReadingLocation(1,.3)),"Texto copiado")
         assertEquals(result.fileId,db.notes().find(note)!!.fileId)
+        File(InstrumentationRegistry.getInstrumentation().context.cacheDir,"fixtures/${uri.lastPathSegment}").delete()
+        val databaseName=db.openHelper.databaseName!!;db.close();val reopened=SophiaDatabase.open(context,databaseName)
+        try{val offline=LocalLibraryRepository(context,reopened);assertEquals(ReadingLocation(1,.3),offline.file(result.fileId).location);assertEquals(1,offline.bookmarks(result.fileId).first().size);assertArrayEquals(bytes,offline.localFile(result.fileId).readBytes());assertTrue(offline.document(result.fileId).units.size>1)}finally{reopened.close()}
     }}
     @Test fun epubMetadataDoesNotBecomeAnInventedOriginalEdition()=runBlocking{isolated{db,repo->
         val uri=fixture("${UUID.randomUUID()}.epub",epub());val result=repo.importFile(ImportRequest(uri.toString(),authorised=true));val book=RoomCatalogRepository(db).books.first().first{it.id==result.workId}

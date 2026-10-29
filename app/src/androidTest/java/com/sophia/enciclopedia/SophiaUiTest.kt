@@ -25,8 +25,8 @@ class SophiaUiTest {
         ready();nav("HOME");ui.onNodeWithTag("theme-settings").performClick();ui.onNodeWithTag("theme-LIGHT").performClick();ui.waitUntil(15000){ui.activity.model.state.value.theme==com.sophia.domain.ThemeMode.LIGHT};shot("01-inicio")
         assertEquals(PackageManager.PERMISSION_DENIED,ui.activity.checkSelfPermission(Manifest.permission.INTERNET))
         nav("LIBRARY");ui.onNodeWithTag("library-search").performTextReplacement("livro dos espiritos");ui.onNodeWithTag("library-search").performImeAction()
-        awaitText("1 obra encontrada");ui.onNodeWithTag("library-count").assertTextEquals("1 obra encontrada")
-        ui.onNodeWithTag("book-spirits").performScrollTo().performClick();ui.onNodeWithTag("book-details").assertExists()
+        ui.waitUntil(15000){ui.activity.model.state.value.library.size==1};ui.onNodeWithTag("library-screen").performScrollToNode(hasTestTag("library-count"));awaitText("1 obra encontrada");ui.onNodeWithTag("library-count").assertTextEquals("1 obra encontrada")
+        ui.onNodeWithTag("library-screen").performScrollToNode(hasTestTag("book-spirits"));ui.onNodeWithTag("book-spirits").performClick();ui.onNodeWithTag("book-details").assertExists()
         ui.onNodeWithTag("detail-favorite").performScrollTo().performClick()
         awaitText("Remover dos favoritos");ui.onNodeWithText("Remover dos favoritos").assertExists()
         ui.onNodeWithText("Fechar detalhes").performScrollTo().performClick()
@@ -58,7 +58,7 @@ class SophiaUiTest {
         nav("HOME");ui.onNodeWithTag("theme-settings").performClick();ui.onNodeWithTag("theme-DARK").performClick();ui.waitUntil(15000){ui.activity.model.state.value.theme==com.sophia.domain.ThemeMode.DARK};shot("05-inicio-escuro")
         ui.activityRule.scenario.recreate();awaitTag("home-screen");ui.onNodeWithTag("home-screen").assertExists()
         ui.onNodeWithTag("theme-settings").performClick();ui.onNodeWithText("✓  Escuro").assertExists();ui.onNodeWithText("Fechar").performClick()
-        ui.onNodeWithTag("home-screen").performScrollToNode(hasText("Ocultismo"));ui.onNodeWithText("Ocultismo").performClick();awaitText("Nenhuma obra encontrada")
+        ui.onNodeWithTag("home-screen").performScrollToNode(hasText("Ocultismo"));ui.onNodeWithText("Ocultismo").performClick();ui.onNodeWithTag("library-screen").performScrollToNode(hasText("Nenhuma obra encontrada"));awaitText("Nenhuma obra encontrada")
         ui.onNodeWithText("Limpar filtros").performClick();awaitText("${ui.activity.model.state.value.books.size} obras encontradas")
     }
 }

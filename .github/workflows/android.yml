@@ -85,6 +85,10 @@ jobs:
         with:
           name: sophia-apk
           path: distribution
+      - name: Obter APK original v0.1.0 para testar atualização
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download sophia-v0.1.0 --pattern 'Sophia-v0.1.0-debug.apk' --dir baseline
       - name: Ativar KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -101,6 +105,10 @@ jobs:
             adb shell svc wifi disable
             adb shell svc data disable
             ./gradlew :data:connectedDebugAndroidTest :app:connectedDebugAndroidTest --stacktrace
+            adb install baseline/Sophia-v0.1.0-debug.apk
+            adb shell am start -W -n com.sophia.enciclopedia/.MainActivity
+            adb shell uiautomator dump /sdcard/Download/Sophia-Test/antes-atualizacao.xml
+            adb shell am force-stop com.sophia.enciclopedia
             adb install -r distribution/Sophia-v0.2.0-debug.apk
             adb shell am start -W -n com.sophia.enciclopedia/.MainActivity
             adb shell uiautomator dump /sdcard/Download/Sophia-Test/instalacao.xml
@@ -134,4 +142,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create sophia-v0.2.0 distribution/* --target "$GITHUB_SHA" --prerelease --title 'Sophia v0.2.0 — Fase 2' --notes 'Primeira versão offline: catálogo bibliográfico, pesquisa de metadados, favoritos, notas e tema persistentes. Assistente IA explicitamente em desenvolvimento. Sem livros integrais ou ficheiros incluídos. APK debug assinado, Android 8.0 ou superior. Consulte README e documentação de testes no repositório. Publicação condicionada a testes unitários, Android e lint.'
+          gh release create sophia-v0.2.0 distribution/* --target "$GITHUB_SHA" --prerelease --title 'Sophia v0.2.0 — Fase 2' --notes 'Biblioteca universal offline: 40 referências e 10 tradições, importação EPUB/PDF/TXT, leitor offline, marcadores, retoma, notas por posição e coleções/listas. Migração explícita Room 1 para 2, sem apagar favoritos ou notas. Assistente IA explicitamente em desenvolvimento. Sem livros integrais ou ficheiros incluídos. A release original v0.1.0 foi preservada. Limites dos formatos e resultados dos testes documentados. APK debug assinado, Android 8.0 ou superior. Consulte README e documentação de testes no repositório. Publicação condicionada a testes unitários, Android e lint.'
