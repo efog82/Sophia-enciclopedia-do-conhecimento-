@@ -70,11 +70,12 @@ private data class LocalHtmlPage(val key:String,val html:String?=null,val error:
 @Composable private fun EpubSurface(state:ReaderState,font:Int,dark:Boolean,vm:ReaderViewModel){
     val href=state.document!!.units[state.unit].href
     val requestKey="${state.info!!.id}:${state.unit}:$font:$dark"
-    val page by produceState(LocalHtmlPage(""),requestKey){
+    var page by remember { mutableStateOf(LocalHtmlPage("")) }
+    LaunchedEffect(requestKey){
         val loaded=try{LocalHtmlPage(requestKey,withContext(Dispatchers.IO){BookDocuments.safeHtml(state.localFile!!,href,dark,font)})}
         catch(e:CancellationException){throw e}
         catch(e:Exception){LocalHtmlPage(requestKey,error="Não foi possível ler este recurso EPUB. Volte ao índice ou tente abrir o ficheiro novamente.")}
-        value=loaded
+        page=loaded
     }
     if(page.key!=requestKey){CircularProgressIndicator(Modifier.padding(24.dp));return}
     if(page.error!=null){EmptyPanel("Recurso indisponível",page.error!!);return}
