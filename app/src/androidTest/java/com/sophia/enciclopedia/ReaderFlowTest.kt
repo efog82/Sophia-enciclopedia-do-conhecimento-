@@ -32,10 +32,20 @@ class ReaderFlowTest {
     }
     private fun pick(name:String){
         ui.onNodeWithTag("import-file").performScrollTo().performClick()
-        device.waitForIdle(2000)
-        if(device.hasObject(By.desc("Show roots")))clickStable(By.desc("Show roots"))
-        else if(device.hasObject(By.desc("Mostrar raízes")))clickStable(By.desc("Mostrar raízes"))
-        clickStable(By.text("Sophia-Teste"))
+        var selected=false
+        repeat(3){
+            if(!selected){
+                device.waitForIdle(2000)
+                if(device.wait(Until.hasObject(By.text(name)),1000)==true)selected=true
+                else{
+                    if(device.hasObject(By.desc("Show roots")))clickStable(By.desc("Show roots"))
+                    else if(device.hasObject(By.desc("Mostrar raízes")))clickStable(By.desc("Mostrar raízes"))
+                    clickStable(By.text("Sophia-Teste"))
+                    selected=device.wait(Until.hasObject(By.text(name)),4000)==true
+                }
+            }
+        }
+        if(!selected){val xml=java.io.ByteArrayOutputStream();device.dumpWindowHierarchy(xml);xml.toString("UTF-8").chunked(3000).forEach{android.util.Log.e("SophiaSAF",it)};error("O seletor não abriu a pasta de testes correta")}
         clickStable(By.text(name));awaitTag("confirm-import")
         ui.onNodeWithTag("import-rights").performScrollTo().performClick();ui.onNodeWithTag("confirm-import").performScrollTo().performClick()
         ui.waitUntil(20000){ui.onAllNodesWithText("Ficheiro importado. Já pode ser lido offline.").fetchSemanticsNodes().isNotEmpty()}
