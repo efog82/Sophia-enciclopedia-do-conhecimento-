@@ -8,7 +8,7 @@ A release v0.1.0 continua intacta. O identificador da aplicação mantém-se `co
 
 ## Requisitos
 
-- APK debug Sophia v0.2.0 e o código desta versão, incluindo a pasta `tools`.
+- APK debug Sophia v0.2.0 e o código desta versão, incluindo a pasta `tools`, ou o arquivo `Sophia-v0.2.0-migracao.zip` extraído.
 - Python 3.10 ou superior e [Android Platform Tools / ADB oficial](https://developer.android.com/tools/releases/platform-tools).
 - Cabo USB, depuração USB ativada no Android e autorização explícita do computador no telemóvel. Sem root.
 - A v0.1.0 original instalada, de tipo debug, com esquema Room 1 e sem ficheiros de livros importados (a versão original não tinha importação). A ferramenta verifica estas condições e recusa outros casos.

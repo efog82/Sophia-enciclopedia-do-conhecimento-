@@ -18,7 +18,9 @@ A v0.1.0 e a sua release permanecem disponíveis. A fase 2 foi desenvolvida na b
 
 ## Instalar e usar
 
-Consulte [Releases](https://github.com/efog82/Sophia-enciclopedia-do-conhecimento-/releases) e os artefactos do [GitHub Actions](https://github.com/efog82/Sophia-enciclopedia-do-conhecimento-/actions). Android 8.0 / API 26 ou superior. O APK é debug, para avaliação, não uma publicação na Play Store.
+**[Descarregar APK v0.2.0](https://github.com/efog82/Sophia-enciclopedia-do-conhecimento-/releases/download/sophia-v0.2.0/Sophia-v0.2.0-debug.apk)** · [Ferramenta de migração da v0.1.0](https://github.com/efog82/Sophia-enciclopedia-do-conhecimento-/releases/download/sophia-v0.2.0/Sophia-v0.2.0-migracao.zip) · [Release](https://github.com/efog82/Sophia-enciclopedia-do-conhecimento-/releases/tag/sophia-v0.2.0).
+
+[Validação final no GitHub Actions](https://github.com/efog82/Sophia-enciclopedia-do-conhecimento-/actions/runs/40918470947): 39 testes automatizados aprovados, lint sem erros e migração assistida real no emulador. [Limites e evidências](docs/TESTES-FASE2.md). Android 8.0 / API 26 ou superior. O APK é debug, para avaliação, não uma publicação na Play Store.
 
 1. **Biblioteca → Importar EPUB, PDF ou TXT.** Escolhe um ficheiro a que tenhas acesso legítimo.
 2. Seleciona a obra do catálogo ou cria uma referência a partir do ficheiro; confirma a autorização de uso pessoal.
@@ -30,7 +32,7 @@ Sem contas, publicidade ou permissões de Internet/armazenamento alargado. Um fo
 
 **Importante para quem já tem a v0.1.0:** foi confirmado que o workflow antigo não conservou a chave privada no caminho de cache configurado. Por isso, **este APK não pode atualizar diretamente a instalação antiga**. Não desinstales manualmente: perderias os dados locais.
 
-Para conservar notas, favoritos e configurações, existe uma [migração assistida e validada](docs/MIGRACAO-V01.md), uma única vez através de um computador com Python e ADB/USB autorizado. A ferramenta guarda o APK instalado e um backup íntegro antes de pedir confirmação para reinstalar; valida os dados depois e repõe a versão antiga se houver falha. Novas instalações não precisam deste procedimento. A leitura/importação continua inteiramente no Android, sem computador ou servidor.
+Para conservar notas, favoritos e configurações, existe uma [migração assistida e validada](docs/MIGRACAO-V01.md), uma única vez através de um computador com Python e ADB/USB autorizado. A ferramenta guarda o APK instalado e um backup íntegro antes de pedir confirmação para reinstalar; valida os dados depois e tenta repor a versão antiga se houver falha. Novas instalações não precisam deste procedimento. A leitura/importação continua inteiramente no Android, sem computador ou servidor.
 
 A assinatura da v0.2.0 é agora explicitamente configurada num caminho da workspace, com cache correto e suporte ao segredo `SOPHIA_SIGNING_KEYSTORE_B64`. Se essa chave faltar depois da publicação, o workflow bloqueia em vez de gerar silenciosamente outra assinatura. O cache não substitui uma cópia segura permanente da chave para futuras versões.
 
