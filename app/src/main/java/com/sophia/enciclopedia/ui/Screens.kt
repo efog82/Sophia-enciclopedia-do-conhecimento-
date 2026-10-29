@@ -15,6 +15,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -75,7 +76,7 @@ import java.util.Locale
         }
     }
 }
-@Composable fun SearchInput(value:String,onChange:(String)->Unit,label:String,tag:String){OutlinedTextField(value,onChange,label={Text(label)},singleLine=true,leadingIcon={Icon(Icons.Outlined.Search,null)},trailingIcon={if(value.isNotEmpty())IconButton(onClick={onChange("")}){Icon(Icons.Outlined.Close,"Limpar pesquisa")}},modifier=Modifier.fillMaxWidth().testTag(tag),shape=RoundedCornerShape(16.dp))}
+@Composable fun SearchInput(value:String,onChange:(String)->Unit,label:String,tag:String){val keyboard=LocalSoftwareKeyboardController.current;OutlinedTextField(value,onChange,keyboardOptions=KeyboardOptions(imeAction=ImeAction.Search),keyboardActions=KeyboardActions(onSearch={keyboard?.hide()}),label={Text(label)},singleLine=true,leadingIcon={Icon(Icons.Outlined.Search,null)},trailingIcon={if(value.isNotEmpty())IconButton(onClick={onChange("")}){Icon(Icons.Outlined.Close,"Limpar pesquisa")}},modifier=Modifier.fillMaxWidth().testTag(tag),shape=RoundedCornerShape(16.dp))}
 @Composable fun AssistantScreen(){
     LazyColumn(Modifier.fillMaxSize().testTag("assistant-screen"),contentPadding=PaddingValues(24.dp),verticalArrangement=Arrangement.spacedBy(22.dp)){
         item{Surface(shape=RoundedCornerShape(20.dp),color=MaterialTheme.colorScheme.primaryContainer){Icon(Icons.Outlined.Psychology,null,Modifier.padding(20.dp).size(40.dp),tint=MaterialTheme.colorScheme.onPrimaryContainer)}}
