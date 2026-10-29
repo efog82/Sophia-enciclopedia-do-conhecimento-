@@ -21,14 +21,22 @@ class ReaderFlowTest {
     private val device get()=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
     private fun awaitTag(tag:String,present:Boolean=true){ui.waitUntil(20000){ui.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()==present}}
     private fun screenshot(name:String){ui.waitForIdle();listOf("mkdir -p /sdcard/Download/Sophia-Test","screencap -p /sdcard/Download/Sophia-Test/$name.png").forEach{command->InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand(command).use{fd->FileInputStream(fd.fileDescriptor).use{it.readBytes()}}}}
+    private fun clickStable(selector:BySelector){
+        val deadline=android.os.SystemClock.uptimeMillis()+15000
+        while(android.os.SystemClock.uptimeMillis()<deadline){
+            device.waitForIdle(1000)
+            val node=device.findObject(selector)
+            if(node!=null){try{node.click();return}catch(_:StaleObjectException){/* The system picker refreshed its row: acquire the node again. */}}
+        }
+        error("O seletor Android não apresentou um elemento estável: $selector")
+    }
     private fun pick(name:String){
         ui.onNodeWithTag("import-file").performScrollTo().performClick()
-        val roots=device.wait(Until.findObject(By.desc("Show roots")),10000)?:device.wait(Until.findObject(By.desc("Mostrar raízes")),2000)
-        roots?.click()
-        val root=device.wait(Until.findObject(By.text("Sophia-Teste")),10000)?:error("O seletor Android não apresentou a fonte técnica de teste")
-        root.click()
-        val item=device.wait(Until.findObject(By.text(name)),10000)?:error("Ficheiro de ensaio não visível no seletor: $name")
-        item.click();awaitTag("confirm-import")
+        device.waitForIdle(2000)
+        if(device.hasObject(By.desc("Show roots")))clickStable(By.desc("Show roots"))
+        else if(device.hasObject(By.desc("Mostrar raízes")))clickStable(By.desc("Mostrar raízes"))
+        clickStable(By.text("Sophia-Teste"))
+        clickStable(By.text(name));awaitTag("confirm-import")
         ui.onNodeWithTag("import-rights").performScrollTo().performClick();ui.onNodeWithTag("confirm-import").performScrollTo().performClick()
         ui.waitUntil(20000){ui.onAllNodesWithText("Ficheiro importado. Já pode ser lido offline.").fetchSemanticsNodes().isNotEmpty()}
         ui.onNodeWithText("Fechar").performClick();awaitTag("book-details")
