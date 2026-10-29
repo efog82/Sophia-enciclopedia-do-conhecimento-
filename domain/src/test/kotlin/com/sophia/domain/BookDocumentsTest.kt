@@ -22,4 +22,14 @@ class BookDocumentsTest {
     @Test fun textBlocksPreserveExactText(){val f=Files.createTempFile("sophia-",".txt").toFile();val text="  início\n"+"Reflexão 🌿\n".repeat(1200);f.writeText(text);try{val d=BookDocuments.text(f);assertEquals(text,d.units.joinToString(""){it.text.orEmpty()});assertTrue(d.units.size>1);assertTrue(d.units.all{!it.title.contains("Capítulo")})}finally{f.delete()}}
     @Test fun supportsUtf16Bom(){val f=Files.createTempFile("sophia-",".txt").toFile();f.writeBytes(byteArrayOf(0xff.toByte(),0xfe.toByte())+"Ação e reflexão".toByteArray(Charsets.UTF_16LE));try{assertEquals("Ação e reflexão",BookDocuments.text(f).units.single().text)}finally{f.delete()}}
     @Test fun rejectsBinaryAndInvalidEncoding(){val f=Files.createTempFile("sophia-",".txt").toFile();try{f.writeBytes(byteArrayOf(0,1,2));assertFails{BookDocuments.text(f)};f.writeBytes(byteArrayOf(0xc3.toByte(),0x28));assertFails{BookDocuments.text(f)}}finally{f.delete()}}
+    @Test fun detectsEpub2AndEpub3DeclaredCovers(){
+        listOf("<meta name='cover' content='cover'/>" to "", "" to " properties='cover-image'").forEach{(meta,properties)->
+            val f=fixture(mapOf("OPS/book.opf" to "<package><metadata>$meta</metadata><manifest><item id='c1' href='c1.xhtml' media-type='application/xhtml+xml'/><item id='cover' href='images/cover.png' media-type='image/png'$properties/></manifest><spine><itemref idref='c1'/></spine></package>","OPS/images/cover.png" to "fixture image bytes"))
+            try{assertEquals("OPS/images/cover.png",BookDocuments.epub(f).coverHref);assertEquals("fixture image bytes",BookDocuments.resource(f,BookDocuments.epub(f).coverHref!!).toString(Charsets.UTF_8))}finally{f.delete()}
+        }
+    }
+    @Test fun externalCoverIsIgnoredWithoutBreakingReading(){
+        val f=fixture(mapOf("OPS/book.opf" to "<package><manifest><item id='c1' href='c1.xhtml' media-type='application/xhtml+xml'/><item id='cover' href='https://example.org/cover.jpg' media-type='image/jpeg' properties='cover-image'/></manifest><spine><itemref idref='c1'/></spine></package>"))
+        try{val doc=BookDocuments.epub(f);assertNull(doc.coverHref);assertEquals(1,doc.units.size)}finally{f.delete()}
+    }
 }

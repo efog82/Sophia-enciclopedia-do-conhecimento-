@@ -12,7 +12,7 @@ import java.util.zip.ZipFile
 
 data class FileMetadata(val title:String?=null,val authors:List<String> = emptyList(),val language:String?=null,val publisher:String?=null,val year:Int?=null)
 data class ReadingUnit(val href:String,val title:String,val text:String?=null)
-data class BookDocument(val metadata:FileMetadata,val units:List<ReadingUnit>,val epub:Boolean)
+data class BookDocument(val metadata:FileMetadata,val units:List<ReadingUnit>,val epub:Boolean,val coverHref:String?=null)
 
 /** Bounded, local-only parsing. ZIP contents are never extracted onto the filesystem. */
 object BookDocuments {
@@ -61,7 +61,12 @@ object BookDocuments {
         }
         require(units.isNotEmpty()){"O EPUB não tem recursos de leitura."}
         val authors=opf.getAllElements().filter{it.normalName().substringAfterLast(':')=="creator"}.map{it.text().trim()}.filter{it.isNotEmpty()}.distinct()
-        return BookDocument(FileMetadata(field("title"),authors,field("language"),field("publisher"),field("date")?.take(4)?.toIntOrNull()?.takeIf{it in 1..9999}),units,true)
+        val declaredCoverId=opf.getAllElements().firstOrNull{it.normalName().substringAfterLast(':')=="meta"&&it.attr("name")=="cover"}?.attr("content")
+        val coverItem=manifest.values.firstOrNull{it.attr("properties").split(Regex("\\s+")).contains("cover-image")}
+            ?:declaredCoverId?.let{manifest[it]}
+        val coverHref=coverItem?.takeIf{it.attr("media-type") in listOf("image/jpeg","image/png","image/webp")}
+            ?.let{runCatching{normalizedPath(opfPath,it.attr("href"))}.getOrNull()}
+        return BookDocument(FileMetadata(field("title"),authors,field("language"),field("publisher"),field("date")?.take(4)?.toIntOrNull()?.takeIf{it in 1..9999}),units,true,coverHref)
     }
     fun text(file:File):BookDocument {
         require(file.length()<=16L*1024*1024){"TXT demasiado grande para este leitor (máximo 16 MiB)."}

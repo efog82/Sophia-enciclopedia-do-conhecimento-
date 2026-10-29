@@ -18,25 +18,17 @@ import com.sophia.domain.*
 import com.sophia.enciclopedia.*
 
 @Composable fun LibraryDialog(title:String,onClose:()->Unit,content:@Composable ColumnScope.()->Unit){Dialog(onDismissRequest=onClose,properties=DialogProperties(usePlatformDefaultWidth=false)){Surface(Modifier.fillMaxWidth().fillMaxHeight(.95f).padding(12.dp),shape=MaterialTheme.shapes.large){Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(14.dp)){TextButton(onClick=onClose){Text("Fechar")};Text(title,style=MaterialTheme.typography.headlineSmall);content()}}}}
-@Composable fun FileCard(file:LibraryFile,onRead:()->Unit){OutlinedCard(onClick=onRead,modifier=Modifier.fillMaxWidth().testTag("file-${file.id}")){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){Text(file.title,style=MaterialTheme.typography.titleMedium);Text(file.displayName,style=MaterialTheme.typography.bodySmall);Text("${file.mimeType.substringAfterLast('/')} · ${(file.sizeBytes/1024).coerceAtLeast(1)} KiB · ${file.progressPermille/10}%",style=MaterialTheme.typography.labelSmall);Text("Ler offline",color=MaterialTheme.colorScheme.primary)}}}
-@Composable fun TraditionsDialog(state:SophiaState,onClose:()->Unit,onBook:(String)->Unit,onResearch:(String)->Unit){
-    var selected by rememberSaveable{mutableStateOf<String?>(null)}
-    val tradition=state.traditions.firstOrNull{it.id==selected}
-    LibraryDialog(tradition?.name?:"Tradições do conhecimento espiritual",onClose){
-        if(tradition==null){Text("Introduções históricas neutras. As crenças são apresentadas no contexto de cada tradição.");state.traditions.forEach{t->OutlinedButton(onClick={selected=t.id},modifier=Modifier.fillMaxWidth().testTag("tradition-${t.id}")){Text(t.name)}}}
-        else{
-            TextButton(onClick={selected=null}){Text("Todas as tradições")}
-            Text(tradition.description,style=MaterialTheme.typography.titleMedium);Text(tradition.historicalContext)
-            Text("Conceitos fundamentais",style=MaterialTheme.typography.titleMedium);Text(tradition.concepts)
-            val books=state.books.filter{b->b.traditions.any{it.id==tradition.id}}
-            Text("Textos e autores",style=MaterialTheme.typography.titleMedium)
-            books.forEach{book->OutlinedButton(onClick={onBook(book.id)},modifier=Modifier.fillMaxWidth()){Column{Text(book.title);Text(book.contributorLabel,style=MaterialTheme.typography.bodySmall);Text(if(book.editions.sumOf{it.fileCount}>0)"Disponível offline" else "Referência · importa uma edição autorizada",style=MaterialTheme.typography.labelSmall)}}}
-            if(books.isEmpty())Text("Ainda não há obras catalogadas nesta tradição.")
-            Button(onClick={onResearch(tradition.id)},modifier=Modifier.fillMaxWidth()){Text("Investigar esta tradição")}
-            Text("Fontes de contextualização",style=MaterialTheme.typography.titleMedium);androidx.compose.foundation.text.selection.SelectionContainer{Text(tradition.sources,style=MaterialTheme.typography.bodySmall)}
+@Composable fun FileCard(file:LibraryFile,onRead:()->Unit){OutlinedCard(onClick=onRead,modifier=Modifier.fillMaxWidth().testTag("file-${file.id}")){
+    Row(Modifier.padding(14.dp),horizontalArrangement=Arrangement.spacedBy(14.dp),verticalAlignment=Alignment.CenterVertically){
+        BookCover(file.title,fileId=file.id,mimeType=file.mimeType,modifier=Modifier.width(82.dp).height(118.dp))
+        Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(6.dp)){
+            Text(file.title,style=MaterialTheme.typography.titleMedium)
+            Text(file.displayName,style=MaterialTheme.typography.bodySmall)
+            Text("${file.mimeType.substringAfterLast('/')} · ${(file.sizeBytes/1024).coerceAtLeast(1)} KiB · ${file.progressPermille/10}%",style=MaterialTheme.typography.labelSmall)
+            Text("Ler offline",color=MaterialTheme.colorScheme.primary)
         }
     }
-}
+}}
 @Composable fun CollectionsDialog(state:SophiaState,library:LibrarySnapshot,vm:LibraryViewModel,onClose:()->Unit,onBook:(String)->Unit){
     var name by rememberSaveable{mutableStateOf("")}
     var readingList by rememberSaveable{mutableStateOf(false)}

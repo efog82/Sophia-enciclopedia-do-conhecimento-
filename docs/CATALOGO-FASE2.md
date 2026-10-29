@@ -43,3 +43,7 @@ Sanskrit Documents é consultado como fonte de bibliografia e organização de t
 Os ficheiros são escolhidos pelo utilizador, que confirma possuir autorização de uso pessoal. `USER_AUTHORISED_NOT_VERIFIED` significa exatamente essa declaração: **não** é domínio público certificado pela Sophia. A aplicação guarda uma cópia privada e não partilha nem redistribui os livros. Metadados `creator`, idioma, editora e data, quando existem no EPUB, pertencem à edição importada e são identificados como declarados no ficheiro.
 
 Um EPUB pode declarar dados inexatos: isso não é corrigido por IA nem aceite como investigação bibliográfica confirmada. TXT/PDF não inventam autoria, tradução ou capítulos; na ausência de um título introduzido usa-se o nome do ficheiro como identificação técnica.
+
+## Apresentação na v0.3.0
+
+As 40 referências e os identificadores foram conservados para manter notas, favoritos, ficheiros associados e coleções. As referências sem ficheiro deixam de aparecer na Biblioteca pessoal e passam a ser apresentadas nas páginas históricas das categorias/tradições e em Investigar. As capas destas referências são composições tipográficas originais, identificadas como ilustrativas, sem reproduzir edições comerciais. Não foram acrescentados textos integrais. Ver [história e proveniência da v0.3.0](HISTORIA-v0.3.0.md).
