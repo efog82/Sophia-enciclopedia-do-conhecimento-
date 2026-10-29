@@ -16,7 +16,7 @@ data class Book(
     val metadataNote:String,val addedAt:Long,val contributors:List<Contributor>,val traditions:List<Tradition>,val categories:List<Category>,val editions:List<Edition>,val favorite:Boolean
 ) {
     val allContributors:List<Contributor> get()=(contributors+editions.flatMap{it.contributors}).distinctBy{it.id to it.role}
-    val contributorLabel:String get()=allContributors.joinToString(" · "){it.name}.ifBlank{"Autoria coletiva ou não individualizada"}
+    val contributorLabel:String get()=allContributors.joinToString(" · "){if(it.role==ContributorRole.AUTHOR)it.name else "${it.name} (${it.role.label.lowercase(Locale.forLanguageTag("pt-PT"))})"}.ifBlank{"Autoria coletiva ou não individualizada"}
 }
 data class StudyNote(val id:String,val title:String,val body:String,val workId:String?,val createdAt:Long,val updatedAt:Long,val fileId:String?=null,val locatorJson:String?=null,val excerpt:String?=null)
 enum class ThemeMode { SYSTEM, LIGHT, DARK }

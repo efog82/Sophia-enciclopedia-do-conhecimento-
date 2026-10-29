@@ -79,7 +79,7 @@ import java.util.Locale
         item{Text("A pesquisa consulta títulos, autores, descrições e classificação. Não pesquisa o texto dos livros e não usa pesquisa semântica.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}
         if(!active)item{EmptyPanel("Por onde queres começar?","Escreve um termo ou escolhe uma tradição. Os resultados remetem para referências bibliográficas, não para citações de livros.",Icons.Outlined.TravelExplore)}
         else {
-            item{Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){Text("${state.research.size} resultados de metadados",Modifier.weight(1f),style=MaterialTheme.typography.titleSmall);TextButton(onClick={vm.setFilters{it.copy(researchQuery="",researchTradition=null,author=null)}}){Text("Limpar")}}}
+            item{Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){Text("${state.research.size} ${if(state.research.size==1)"resultado" else "resultados"} de metadados",Modifier.weight(1f),style=MaterialTheme.typography.titleSmall);TextButton(onClick={vm.setFilters{it.copy(researchQuery="",researchTradition=null,author=null)}}){Text("Limpar")}}}
             if(state.research.isEmpty())item{EmptyPanel("Não encontrámos correspondências","Tenta um termo mais geral ou remove um dos filtros.",Icons.Outlined.SearchOff)}
             items(state.research,key={it.id}){book->BookCard(book,book.id in busy,{vm.openBook(book.id)},{vm.toggleFavorite(book)})}
         }

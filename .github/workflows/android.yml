@@ -127,7 +127,7 @@ jobs:
             app/build/reports/androidTests/
             screenshots/
   release:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/fase-2-biblioteca'
     needs: [build, android-tests]
     runs-on: ubuntu-24.04
     permissions:
