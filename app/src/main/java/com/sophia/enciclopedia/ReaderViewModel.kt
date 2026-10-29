@@ -25,6 +25,7 @@ class ReaderViewModel(private val library:LocalLibraryRepository,private val not
     init{load();viewModelScope.launch{positions.debounce(400).collect{save(it)}}}
     fun load(){viewModelScope.launch{_state.value=ReaderState();try{
         val info=library.file(id);val document=library.document(id);val local=library.localFile(id)
+        require(document.units.isNotEmpty()){"O ficheiro não contém páginas ou recursos de leitura."}
         val location=initial?.let{LocationCodec.decode(it)}?:info.location?:ReadingLocation()
         _state.value=ReaderState(false,info,document,local,location.unit.coerceAtMost(document.units.lastIndex),location.fraction)
         render();positions.tryEmit(current())
@@ -36,8 +37,8 @@ class ReaderViewModel(private val library:LocalLibraryRepository,private val not
     private fun render(){rendering?.cancel();if(_state.value.info?.mimeType!="application/pdf")return;val unit=_state.value.unit;rendering=viewModelScope.launch{try{val bitmap=library.pdfPage(id,unit);if(_state.value.unit==unit)_state.value=_state.value.copy(bitmap=bitmap)}catch(e:CancellationException){throw e}catch(e:Exception){_message.value="Não foi possível renderizar esta página PDF."}}}
     fun bookmark(){viewModelScope.launch{try{val s=_state.value;library.addBookmark(id,s.document!!.units[s.unit].title,current());_message.value="Marcador guardado."}catch(e:CancellationException){throw e}catch(e:Exception){_message.value="Não foi possível guardar o marcador."}}}
     fun deleteBookmark(id:String){viewModelScope.launch{try{library.deleteBookmark(id)}catch(e:CancellationException){throw e}catch(e:Exception){_message.value="Não foi possível eliminar o marcador."}}}
-    fun font(size:Int){viewModelScope.launch{preferences.setReaderFontSize(size.coerceIn(12,36))}}
-    fun theme(dark:Boolean){viewModelScope.launch{preferences.setTheme(if(dark)ThemeMode.DARK else ThemeMode.LIGHT)}}
+    fun font(size:Int){viewModelScope.launch{try{preferences.setReaderFontSize(size.coerceIn(12,36))}catch(e:CancellationException){throw e}catch(e:Exception){_message.value="Não foi possível guardar o tamanho da letra."}}}
+    fun theme(dark:Boolean){viewModelScope.launch{try{preferences.setTheme(if(dark)ThemeMode.DARK else ThemeMode.LIGHT)}catch(e:CancellationException){throw e}catch(e:Exception){_message.value="Não foi possível guardar o tema."}}}
     fun clearMessage(){_message.value=null}
     suspend fun saveNote(title:String,body:String,excerpt:String){val s=state.value;notes.save(null,title,body,s.info!!.workId,id,LocationCodec.encode(current()),excerpt)}
     fun close(onClosed:()->Unit){viewModelScope.launch{if(_state.value.document!=null)save(current());onClosed()}}

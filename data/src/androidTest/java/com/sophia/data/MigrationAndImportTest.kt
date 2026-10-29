@@ -53,7 +53,7 @@ class MigrationAndImportTest {
         assertEquals("Técnica Sophia",book.title);assertNull(book.originalYear);assertEquals("pt",book.editions.single().language);assertEquals("USER_AUTHORISED_NOT_VERIFIED",book.editions.single().rightsStatus);assertEquals("Autor declarado de teste",book.editions.single().contributors.single().name);assertEquals(1,repo.document(result.fileId).units.size)
     }}
     @Test fun pdfHasRealPagesAndCanRender()=runBlocking{isolated{_,repo->
-        val output=java.io.ByteArrayOutputStream();PdfDocument().use{doc->repeat(2){i->val page=doc.startPage(PdfDocument.PageInfo.Builder(500,700,i+1).create());page.canvas.drawText("Pagina tecnica ${i+1}",30f,80f,android.graphics.Paint().apply{textSize=18f});doc.finishPage(page)};doc.writeTo(output)}
+        val output=java.io.ByteArrayOutputStream();val doc=PdfDocument();try{repeat(2){i->val page=doc.startPage(PdfDocument.PageInfo.Builder(500,700,i+1).create());page.canvas.drawText("Pagina tecnica ${i+1}",30f,80f,android.graphics.Paint().apply{textSize=18f});doc.finishPage(page)};doc.writeTo(output)}finally{doc.close()}
         val result=repo.importFile(ImportRequest(fixture("${UUID.randomUUID()}.pdf",output.toByteArray()).toString(),authorised=true));assertEquals(2,repo.document(result.fileId).units.size);val bitmap=repo.pdfPage(result.fileId,1);assertTrue(bitmap.width>0);assertTrue(bitmap.height>0);bitmap.recycle()
     }}
     @Test fun incompatibleAndUnauthorisedImportsDoNotCreateRecords()=runBlocking{isolated{_,repo->

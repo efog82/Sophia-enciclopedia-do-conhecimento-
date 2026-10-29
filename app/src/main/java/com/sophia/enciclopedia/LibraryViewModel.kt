@@ -10,7 +10,7 @@ data class LibraryUiState(val loading:Boolean=true,val data:LibrarySnapshot=Libr
 class LibraryViewModel(private val repository:LibraryRepository):ViewModel(){
     private val retries=MutableStateFlow(0)
     @OptIn(ExperimentalCoroutinesApi::class)
-    val state=retries.flatMapLatest{repository.snapshot}.map{LibraryUiState(false,it)}.catch{e->if(e is CancellationException)throw e;emit(LibraryUiState(false,error="Não foi possível abrir os ficheiros e coleções locais."))}.stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),LibraryUiState())
+    val state=retries.flatMapLatest{repository.snapshot.map{LibraryUiState(false,it)}.catch{e->if(e is CancellationException)throw e;emit(LibraryUiState(false,error="Não foi possível abrir os ficheiros e coleções locais."))}}.stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),LibraryUiState())
     private val _importing=MutableStateFlow(false);val importing=_importing.asStateFlow()
     private val _message=MutableStateFlow<String?>(null);val message=_message.asStateFlow()
     private val _result=MutableStateFlow<ImportResult?>(null);val result=_result.asStateFlow()

@@ -57,9 +57,9 @@ class PersistenceTest {
     @Test fun themePersistsAfterDataStoreReopen()=runBlocking{
         val prefName="test-${UUID.randomUUID()}"
         val firstScope=CoroutineScope(SupervisorJob()+Dispatchers.IO)
-        val first=DataStorePreferences(context,firstScope,prefName);assertEquals(ThemeMode.SYSTEM,first.theme.first());first.setTheme(ThemeMode.DARK)
+        val first=DataStorePreferences(context,firstScope,prefName);assertEquals(ThemeMode.SYSTEM,first.theme.first());first.setTheme(ThemeMode.DARK);first.setReaderFontSize(26)
         firstScope.coroutineContext[Job]!!.cancelAndJoin()
         val secondScope=CoroutineScope(SupervisorJob()+Dispatchers.IO)
-        try{assertEquals(ThemeMode.DARK,DataStorePreferences(context,secondScope,prefName).theme.first())}finally{secondScope.coroutineContext[Job]!!.cancelAndJoin();java.io.File(context.filesDir,"datastore/$prefName.preferences_pb").delete()}
+        try{val reopened=DataStorePreferences(context,secondScope,prefName);assertEquals(ThemeMode.DARK,reopened.theme.first());assertEquals(26,reopened.readerFontSize.first())}finally{secondScope.coroutineContext[Job]!!.cancelAndJoin();java.io.File(context.filesDir,"datastore/$prefName.preferences_pb").delete()}
     }
 }

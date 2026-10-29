@@ -48,7 +48,7 @@ import java.io.ByteArrayInputStream
                     when(state.info!!.mimeType){
                         "application/pdf"->if(state.bitmap==null)CircularProgressIndicator(Modifier.align(Alignment.Center))else PdfSurface(state.bitmap!!,dark)
                         "application/epub+zip"->EpubSurface(state,font,dark,vm)
-                        else->key(state.unit){val scroll=rememberScrollState();LaunchedEffect(scroll.maxValue){if(scroll.maxValue>0&&scroll.value==0)scroll.scrollTo((state.fraction*scroll.maxValue).toInt())};LaunchedEffect(scroll){snapshotFlow{scroll.value to scroll.maxValue}.collect{(value,max)->if(max>0)vm.scroll(value.toDouble()/max)}};SelectionContainer{Text(unit.text.orEmpty(),Modifier.fillMaxSize().verticalScroll(scroll).padding(24.dp).testTag("txt-content"),fontSize=font.sp,lineHeight=(font*1.65).sp)}}
+                        else->key(state.unit){val scroll=rememberScrollState();val initialFraction=remember{state.fraction};var restored by remember{mutableStateOf(false)};LaunchedEffect(scroll.maxValue){if(scroll.maxValue>0&&!restored){scroll.scrollTo((initialFraction*scroll.maxValue).toInt());restored=true}};LaunchedEffect(scroll){snapshotFlow{scroll.value to scroll.maxValue}.collect{(value,max)->if(restored&&max>0)vm.scroll(value.toDouble()/max)}};SelectionContainer{Text(unit.text.orEmpty(),Modifier.fillMaxSize().verticalScroll(scroll).padding(24.dp).testTag("txt-content"),fontSize=font.sp,lineHeight=(font*1.65).sp)}}
                     }
                 }
                 if(state.info!!.mimeType=="application/pdf")Text("PDF: letra fixa; usa dois dedos para ampliar e deslocar.",Modifier.padding(horizontal=12.dp),style=MaterialTheme.typography.labelSmall)

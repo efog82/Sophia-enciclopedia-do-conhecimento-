@@ -21,12 +21,6 @@ class ReaderFlowTest {
     private val device get()=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
     private fun awaitTag(tag:String,present:Boolean=true){ui.waitUntil(20000){ui.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()==present}}
     private fun screenshot(name:String){ui.waitForIdle();listOf("mkdir -p /sdcard/Download/Sophia-Test","screencap -p /sdcard/Download/Sophia-Test/$name.png").forEach{command->InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand(command).use{fd->FileInputStream(fd.fileDescriptor).use{it.readBytes()}}}}
-    private fun fixtures(){
-        val dir=File(InstrumentationRegistry.getInstrumentation().context.filesDir,"reader-fixtures").apply{mkdirs()}
-        File(dir,"01-Sophia.txt").writeText("Texto técnico original Sophia, criado apenas para ensaio.\n".repeat(300))
-        ZipOutputStream(File(dir,"02-Sophia.epub").outputStream()).use{zip->mapOf("mimetype" to "application/epub+zip","META-INF/container.xml" to "<container><rootfiles><rootfile full-path='OPS/book.opf'/></rootfiles></container>","OPS/book.opf" to "<package><metadata><title>EPUB técnico Sophia</title><creator>Autor de ensaio</creator><language>pt</language></metadata><manifest><item id='a' href='a.xhtml' media-type='application/xhtml+xml'/><item id='b' href='b.xhtml' media-type='application/xhtml+xml'/></manifest><spine><itemref idref='a'/><itemref idref='b'/></spine></package>","OPS/a.xhtml" to "<html><body><h1>Primeiro recurso EPUB</h1><p>Conteúdo original de ensaio EPUB.</p></body></html>","OPS/b.xhtml" to "<html><body><h1>Segundo recurso EPUB</h1><p>Passagem de teste para notas.</p></body></html>").forEach{(name,text)->zip.putNextEntry(ZipEntry(name));zip.write(text.toByteArray());zip.closeEntry()}}
-        PdfDocument().use{pdf->repeat(2){i->val page=pdf.startPage(PdfDocument.PageInfo.Builder(500,700,i+1).create());page.canvas.drawText("Sophia - PDF de teste ${i+1}",30f,90f,Paint().apply{textSize=22f});pdf.finishPage(page)};File(dir,"03-Sophia.pdf").outputStream().use{pdf.writeTo(it)}}
-    }
     private fun pick(name:String){
         ui.onNodeWithTag("import-file").performScrollTo().performClick()
         val roots=device.wait(Until.findObject(By.desc("Show roots")),10000)?:device.wait(Until.findObject(By.desc("Mostrar raízes")),2000)
@@ -45,7 +39,7 @@ class ReaderFlowTest {
         ui.onNodeWithTag("file-$id").performScrollTo().performClick();awaitTag("reader-screen");ui.waitUntil(20000){ui.onAllNodesWithTag("reader-next").fetchSemanticsNodes().isNotEmpty()};return id
     }
     @Test fun safImportAndReadingAllThreeFormats(){
-        fixtures();awaitTag("home-screen")
+        awaitTag("home-screen")
         runBlocking{(ui.activity.application as SophiaApplication).container.preferences.setReaderFontSize(20)}
         ui.onNodeWithTag("open-traditions").performScrollTo().performClick();ui.onNodeWithTag("tradition-hinduism").performScrollTo().performClick();ui.onNodeWithText("Rigveda").performScrollTo().assertExists();ui.onNodeWithText("Fechar").performScrollTo().performClick()
         ui.onNodeWithTag("nav-LIBRARY").performClick();pick("01-Sophia.txt");val txtId=openImported("01-Sophia.txt");ui.onNodeWithTag("txt-content").assertExists();ui.onNodeWithTag("reader-next").performClick();screenshot("06-leitor-txt");ui.onNodeWithTag("close-reader").performClick();awaitTag("book-details");ui.waitUntil(10000){ui.activity.libraryModel.state.value.data.files.first{it.id==txtId}.location?.unit==1};ui.onNodeWithText("Fechar detalhes").performScrollTo().performClick()
