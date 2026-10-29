@@ -15,7 +15,7 @@ Não exige conta, ligação à Internet, publicidade, cartão bancário ou crede
 
 ## Instalação
 
-O workflow publica um APK debug apenas após compilação, lint e testes no Android. Consulte [Releases](https://github.com/efog82/Sophia-enciclopedia-do-conhecimento-/releases). Instale o APK no Android 8.0 (API 26) ou superior, autorizando a instalação desta origem quando o Android o solicitar. É uma versão inicial de estudo, não uma publicação na Play Store.
+O workflow publica um APK debug apenas após compilação, lint e testes no Android. [Descarregar APK v0.1.0](https://github.com/efog82/Sophia-enciclopedia-do-conhecimento-/releases/download/sophia-v0.1.0/Sophia-v0.1.0-debug.apk) · [Release, assinatura e SHA-256](https://github.com/efog82/Sophia-enciclopedia-do-conhecimento-/releases/tag/sophia-v0.1.0). Instale o APK no Android 8.0 (API 26) ou superior, autorizando a instalação desta origem quando o Android o solicitar. É uma versão inicial de estudo, não uma publicação na Play Store.
 
 ## Compilar
 
@@ -28,6 +28,10 @@ Requisitos: JDK 17, Android SDK 35, Build Tools 35.0.0 e Gradle 8.10.2. Abra a r
 ```
 
 APK: `app/build/outputs/apk/debug/app-debug.apk`. No Windows use `gradlew.bat`. Não publique keystores, `local.properties`, dados pessoais ou credenciais. A assinatura debug é preservada pelo cache exclusivo deste projeto no GitHub Actions.
+
+## Validação executada
+
+17 testes passaram: 9 unitários, 7 de persistência e 1 percurso completo de interface no emulador Android 15, sem rede. O APK de distribuição foi também instalado e aberto no emulador. Lint sem erros, com avisos documentados. Não foi testado num telefone físico nem em API 26. Consulte o [relatório completo](docs/TESTES.md).
 
 ## Organização e documentação
 
