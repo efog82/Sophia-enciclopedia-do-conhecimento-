@@ -12,7 +12,7 @@ A Biblioteca pessoal mostra apenas ficheiros importados. As referências ficam n
 
 Capas declaradas de EPUB, primeira página de PDF e capas tipográficas originais como alternativa; referências com «Capa ilustrativa». Sem downloads de livros ou imagens de editoras. [Conteúdo e critérios documentais](docs/HISTORIA-v0.3.0.md) · [Validação desta versão](docs/TESTES-v0.3.0.md).
 
-**Atualização da v0.2.0:** o workflow exige a mesma assinatura publicada e testa a instalação por cima, conservando os dados. Não desinstales a aplicação. O APK v0.3.0 será ligado aqui após validação/publicação; o link abaixo continua a ser o APK v0.2.0.
+**Atualização da v0.2.0:** instala a v0.3.0 por cima, sem desinstalar. O certificado é o mesmo e a atualização direta foi testada no emulador, conservando os dados. Quem ainda tem a v0.1.0 deve usar primeiro a migração assistida para v0.2.0, explicada abaixo.
 
 ## O que inclui
 
@@ -28,9 +28,9 @@ Capas declaradas de EPUB, primeira página de PDF e capas tipográficas originai
 
 ## Instalar e usar
 
-**[Descarregar APK v0.2.0](https://github.com/efog82/Sophia-enciclopedia-do-conhecimento-/releases/download/sophia-v0.2.0/Sophia-v0.2.0-debug.apk)** · [Ferramenta de migração da v0.1.0](https://github.com/efog82/Sophia-enciclopedia-do-conhecimento-/releases/download/sophia-v0.2.0/Sophia-v0.2.0-migracao.zip) · [Release](https://github.com/efog82/Sophia-enciclopedia-do-conhecimento-/releases/tag/sophia-v0.2.0).
+**[Descarregar APK v0.3.0](https://github.com/efog82/Sophia-enciclopedia-do-conhecimento-/releases/download/sophia-v0.3.0/Sophia-v0.3.0-debug.apk)** · [Release v0.3.0](https://github.com/efog82/Sophia-enciclopedia-do-conhecimento-/releases/tag/sophia-v0.3.0) · [APK anterior v0.2.0](https://github.com/efog82/Sophia-enciclopedia-do-conhecimento-/releases/download/sophia-v0.2.0/Sophia-v0.2.0-debug.apk) · [Ferramenta de migração da v0.1.0](https://github.com/efog82/Sophia-enciclopedia-do-conhecimento-/releases/download/sophia-v0.2.0/Sophia-v0.2.0-migracao.zip) · [Release](https://github.com/efog82/Sophia-enciclopedia-do-conhecimento-/releases/tag/sophia-v0.2.0).
 
-[Validação final no GitHub Actions](https://github.com/efog82/Sophia-enciclopedia-do-conhecimento-/actions/runs/40918470947): 39 testes automatizados aprovados, lint sem erros e migração assistida real no emulador. [Limites e evidências](docs/TESTES-FASE2.md). Android 8.0 / API 26 ou superior. O APK é debug, para avaliação, não uma publicação na Play Store.
+[Validação da v0.3.0 no GitHub Actions](https://github.com/efog82/Sophia-enciclopedia-do-conhecimento-/actions/runs/40958248556): 43 testes automatizados aprovados, lint com zero erros e 20 avisos, atualização direta v0.2.0 → v0.3.0 e migração assistida antiga no emulador. [Limites e evidências](docs/TESTES-v0.3.0.md). Android 8.0 / API 26 ou superior. O APK é debug, para avaliação, não uma publicação na Play Store.
 
 1. **Biblioteca → Importar EPUB, PDF ou TXT.** Escolhe um ficheiro a que tenhas acesso legítimo.
 2. Seleciona a obra do catálogo ou cria uma referência a partir do ficheiro; confirma a autorização de uso pessoal.
