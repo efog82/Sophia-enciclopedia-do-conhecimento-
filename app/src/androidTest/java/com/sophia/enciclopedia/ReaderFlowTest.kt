@@ -21,6 +21,14 @@ class ReaderFlowTest {
     private val device get()=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
     private fun awaitTag(tag:String,present:Boolean=true){ui.waitUntil(20000){ui.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()==present}}
     private fun screenshot(name:String){ui.waitForIdle();listOf("mkdir -p /sdcard/Download/Sophia-Test","screencap -p /sdcard/Download/Sophia-Test/$name.png").forEach{command->InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand(command).use{fd->FileInputStream(fd.fileDescriptor).use{it.readBytes()}}}}
+    private fun requireDocumentText(text:String){
+        if(device.wait(Until.hasObject(By.textContains(text)),15000)!=true){
+            val dump=java.io.ByteArrayOutputStream();device.dumpWindowHierarchy(dump)
+            dump.toString("UTF-8").chunked(3000).forEach{android.util.Log.e("SophiaReaderFailure",it)}
+            screenshot("falha-leitor")
+            fail("O leitor não apresentou o texto esperado: $text")
+        }
+    }
     private fun clickStable(selector:BySelector){
         val deadline=android.os.SystemClock.uptimeMillis()+15000
         while(android.os.SystemClock.uptimeMillis()<deadline){
@@ -62,14 +70,14 @@ class ReaderFlowTest {
         ui.onNodeWithTag("open-traditions").performScrollTo().performClick();ui.onNodeWithTag("tradition-hinduism").performScrollTo().performClick();ui.onNodeWithText("Rigveda").performScrollTo().assertExists();ui.onNodeWithText("Fechar").performScrollTo().performClick()
         ui.onNodeWithTag("nav-LIBRARY").performClick();pick("01-Sophia.txt");val txtId=openImported("01-Sophia.txt");ui.onNodeWithTag("txt-content").assertExists();ui.onNodeWithTag("reader-next").performClick();screenshot("06-leitor-txt");ui.onNodeWithTag("close-reader").performClick();awaitTag("reader-screen",false);awaitTag("book-details");ui.waitUntil(10000){ui.activity.libraryModel.state.value.data.files.first{it.id==txtId}.location?.unit==1};ui.onNodeWithText("Fechar detalhes").performScrollTo().performClick()
         ui.onNodeWithTag("library-screen").performScrollToIndex(0);pick("02-Sophia.epub");val epubId=openImported("02-Sophia.epub");awaitTag("epub-content")
-        assertNotNull("O WebView deve apresentar texto real do EPUB",device.wait(Until.findObject(By.textContains("Primeiro recurso EPUB")),15000))
+        requireDocumentText("Primeiro recurso EPUB")
         ui.onNodeWithTag("font-plus").performClick();ui.waitUntil(15000){ui.onAllNodesWithTag("reader-font").fetchSemanticsNodes().any{node->node.config[androidx.compose.ui.semantics.SemanticsProperties.Text].any{it.text=="22"}}}
-        assertNotNull("O texto deve continuar acessível após alterar a letra",device.wait(Until.findObject(By.textContains("Primeiro recurso EPUB")),15000))
-        ui.onNodeWithTag("reader-next").performClick();assertNotNull("A segunda página deve apresentar o seu próprio texto",device.wait(Until.findObject(By.textContains("Segundo recurso EPUB")),15000));ui.onNodeWithTag("add-bookmark").performClick();ui.waitUntil(10000){ui.onAllNodesWithText("Marcador guardado.").fetchSemanticsNodes().isNotEmpty()};ui.onNodeWithText("Fechar").performClick()
+        requireDocumentText("Primeiro recurso EPUB")
+        ui.onNodeWithTag("reader-next").performClick();requireDocumentText("Segundo recurso EPUB");ui.onNodeWithTag("add-bookmark").performClick();ui.waitUntil(10000){ui.onAllNodesWithText("Marcador guardado.").fetchSemanticsNodes().isNotEmpty()};ui.onNodeWithText("Fechar").performClick()
         ui.onNodeWithTag("open-bookmarks").performClick();ui.onNodeWithText("Segundo recurso EPUB").performClick()
-        ui.onNodeWithTag("reader-note").performClick();ui.onNodeWithTag("passage-note-title").performTextReplacement("Nota de passagem EPUB");ui.onNodeWithTag("passage-note-body").performTextInput("Estudo pessoal fundamentado no ficheiro.");ui.onNodeWithTag("save-passage-note").performScrollTo().performClick();awaitTag("save-passage-note",false);assertNotNull(device.wait(Until.findObject(By.textContains("Passagem de teste para notas.")),15000));screenshot("07-leitor-epub")
+        ui.onNodeWithTag("reader-note").performClick();ui.onNodeWithTag("passage-note-title").performTextReplacement("Nota de passagem EPUB");ui.onNodeWithTag("passage-note-body").performTextInput("Estudo pessoal fundamentado no ficheiro.");ui.onNodeWithTag("save-passage-note").performScrollTo().performClick();awaitTag("save-passage-note",false);requireDocumentText("Passagem de teste para notas.");screenshot("07-leitor-epub")
         ui.onNodeWithTag("close-reader").performClick();awaitTag("reader-screen",false);awaitTag("book-details");ui.waitUntil(10000){ui.activity.libraryModel.state.value.data.files.first{it.id==epubId}.location?.unit==1};ui.onNodeWithText("Fechar detalhes").performScrollTo().performClick()
         ui.onNodeWithTag("library-screen").performScrollToIndex(0);pick("03-Sophia.pdf");openImported("03-Sophia.pdf");ui.waitUntil(20000){ui.onAllNodesWithContentDescription("Página PDF").fetchSemanticsNodes().isNotEmpty()};ui.onNodeWithTag("reader-next").performClick();ui.waitUntil(20000){ui.onAllNodesWithContentDescription("Página PDF").fetchSemanticsNodes().isNotEmpty()};screenshot("08-leitor-pdf");ui.onNodeWithTag("close-reader").performClick();awaitTag("reader-screen",false);awaitTag("book-details");ui.onNodeWithText("Fechar detalhes").performScrollTo().performClick()
-        ui.onNodeWithTag("nav-NOTES").performClick();ui.waitUntil(10000){ui.onAllNodesWithText("Nota de passagem EPUB").fetchSemanticsNodes().isNotEmpty()};ui.onNodeWithText("Nota de passagem EPUB").performScrollTo().performClick();ui.onNodeWithText("Ler passagem associada").performScrollTo().performClick();awaitTag("reader-screen");awaitTag("reader-index");ui.onNodeWithTag("reader-index").assertTextContains("2/2",substring=true);assertNotNull("Regressar à nota deve abrir texto real, sem página de erro",device.wait(Until.findObject(By.textContains("Passagem de teste para notas.")),15000));ui.onNodeWithTag("close-reader").performClick();awaitTag("reader-screen",false);awaitTag("note-editor");ui.onNodeWithTag("cancel-note").performScrollTo().performClick()
+        ui.onNodeWithTag("nav-NOTES").performClick();ui.waitUntil(10000){ui.onAllNodesWithText("Nota de passagem EPUB").fetchSemanticsNodes().isNotEmpty()};ui.onNodeWithText("Nota de passagem EPUB").performScrollTo().performClick();ui.onNodeWithText("Ler passagem associada").performScrollTo().performClick();awaitTag("reader-screen");awaitTag("reader-index");ui.onNodeWithTag("reader-index").assertTextContains("2/2",substring=true);requireDocumentText("Passagem de teste para notas.");ui.onNodeWithTag("close-reader").performClick();awaitTag("reader-screen",false);awaitTag("note-editor");ui.onNodeWithTag("cancel-note").performScrollTo().performClick()
     }
 }

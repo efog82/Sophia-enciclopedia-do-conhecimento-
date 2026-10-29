@@ -65,7 +65,7 @@ import java.io.ByteArrayInputStream
     }
 }
 @Composable private fun PdfSurface(bitmap:Bitmap,dark:Boolean){var scale by remember(bitmap){mutableFloatStateOf(1f)};var offset by remember(bitmap){mutableStateOf(Offset.Zero)};val transform=rememberTransformableState{zoom,pan,_->scale=(scale*zoom).coerceIn(1f,4f);offset=if(scale<=1f)Offset.Zero else (offset+pan).let{Offset(it.x.coerceIn(-1800f,1800f),it.y.coerceIn(-2400f,2400f))}};Box(Modifier.fillMaxSize().transformable(transform)){Image(bitmap.asImageBitmap(),"Página PDF",Modifier.fillMaxSize().graphicsLayer{scaleX=scale;scaleY=scale;translationX=offset.x;translationY=offset.y},contentScale=ContentScale.Fit,colorFilter=if(dark)ColorFilter.colorMatrix(ColorMatrix(floatArrayOf(-1f,0f,0f,0f,255f,0f,-1f,0f,0f,255f,0f,0f,-1f,0f,255f,0f,0f,0f,1f,0f)))else null);if(scale>1f)TextButton(onClick={scale=1f;offset=Offset.Zero},modifier=Modifier.align(Alignment.BottomCenter)){Text("Repor zoom")}}}
-private class LocalBookWebView(context:android.content.Context):WebView(context){var onScroll:((Double)->Unit)?=null;var restoring=true;override fun onScrollChanged(l:Int,t:Int,oldl:Int,oldt:Int){super.onScrollChanged(l,t,oldl,oldt);if(!restoring){val range=(contentHeight*resources.displayMetrics.density-height).coerceAtLeast(0f);if(range>0)onScroll?.invoke((t/range).toDouble().coerceIn(0.0,1.0))}}}
+private class LocalBookWebView(context:android.content.Context):WebView(context){var onScroll:((Double)->Unit)?=null;var restoring=true;var loadedKey:String?=null;override fun onScrollChanged(l:Int,t:Int,oldl:Int,oldt:Int){super.onScrollChanged(l,t,oldl,oldt);if(!restoring){val range=(contentHeight*resources.displayMetrics.density-height).coerceAtLeast(0f);if(range>0)onScroll?.invoke((t/range).toDouble().coerceIn(0.0,1.0))}}}
 private data class LocalHtmlPage(val key:String,val html:String?=null,val error:String?=null)
 @Composable private fun EpubSurface(state:ReaderState,font:Int,dark:Boolean,vm:ReaderViewModel){
     val href=state.document!!.units[state.unit].href
@@ -77,11 +77,7 @@ private data class LocalHtmlPage(val key:String,val html:String?=null,val error:
         catch(e:Exception){LocalHtmlPage(requestKey,error="Não foi possível ler este recurso EPUB. Volte ao índice ou tente abrir o ficheiro novamente.")}
         page=loaded
     }
-    if(page.key!=requestKey){CircularProgressIndicator(Modifier.padding(24.dp));return}
-    if(page.error!=null){EmptyPanel("Recurso indisponível",page.error!!);return}
-    val html=page.html?:return
-    key(requestKey){
-        val initialFraction=remember{state.fraction}
+    Box(Modifier.fillMaxSize()){
         AndroidView(factory={context->LocalBookWebView(context).apply{
             settings.javaScriptEnabled=false
             settings.allowFileAccess=false
@@ -91,38 +87,49 @@ private data class LocalHtmlPage(val key:String,val html:String?=null,val error:
             settings.cacheMode=WebSettings.LOAD_NO_CACHE
             settings.setSupportMultipleWindows(false)
             settings.mixedContentMode=WebSettings.MIXED_CONTENT_NEVER_ALLOW
-            onScroll=vm::scroll
-            webViewClient=object:WebViewClient(){
-                override fun shouldInterceptRequest(view:WebView,request:WebResourceRequest):WebResourceResponse{
-                    val url=request.url
-                    val path=url.path?.removePrefix("/")?:""
-                    if(url.scheme!="https"||url.host!="sophia.invalid")return blocked()
-                    return try{
-                        val safe=BookDocuments.normalizedPath("",path)
-                        if(request.isForMainFrame && safe==href){
-                            WebResourceResponse("text/html","UTF-8",ByteArrayInputStream(html.toByteArray(Charsets.UTF_8))).apply{responseHeaders=mapOf("Cache-Control" to "no-store")}
-                        }else{
-                            val bytes=BookDocuments.resource(state.localFile!!,safe)
-                            val mime=when(safe.substringAfterLast('.').lowercase()){"jpg","jpeg"->"image/jpeg";"png"->"image/png";"webp"->"image/webp";"gif"->"image/gif";"svg"->"image/svg+xml";else->"application/octet-stream"}
-                            WebResourceResponse(mime,null,ByteArrayInputStream(bytes))
-                        }
-                    }catch(e:Exception){blocked()}
-                }
-                override fun shouldOverrideUrlLoading(view:WebView,request:WebResourceRequest):Boolean{
-                    val url=request.url
-                    if(url.scheme=="https"&&url.host=="sophia.invalid"){
-                        val index=state.document.units.indexOfFirst{it.href==url.path?.removePrefix("/")}
-                        if(index>=0&&index!=state.unit)vm.go(index)
-                        if(index==state.unit)return false
+        }},update={reader->
+            val html=page.html
+            if(page.key==requestKey && html!=null && reader.loadedKey!=requestKey){
+                reader.loadedKey=requestKey
+                reader.restoring=true
+                reader.onScroll=vm::scroll
+                val initialFraction=state.fraction
+                reader.webViewClient=object:WebViewClient(){
+                    override fun shouldInterceptRequest(view:WebView,request:WebResourceRequest):WebResourceResponse{
+                        val url=request.url
+                        val path=url.path?.removePrefix("/")?:""
+                        if(url.scheme!="https"||url.host!="sophia.invalid")return blocked()
+                        return try{
+                            val safe=BookDocuments.normalizedPath("",path)
+                            if(request.isForMainFrame && safe==href){
+                                WebResourceResponse("text/html","UTF-8",ByteArrayInputStream(html.toByteArray(Charsets.UTF_8))).apply{responseHeaders=mapOf("Cache-Control" to "no-store")}
+                            }else{
+                                val bytes=BookDocuments.resource(state.localFile!!,safe)
+                                val mime=when(safe.substringAfterLast('.').lowercase()){"jpg","jpeg"->"image/jpeg";"png"->"image/png";"webp"->"image/webp";"gif"->"image/gif";"svg"->"image/svg+xml";else->"application/octet-stream"}
+                                WebResourceResponse(mime,null,ByteArrayInputStream(bytes))
+                            }
+                        }catch(e:Exception){blocked()}
                     }
-                    return true
+                    override fun shouldOverrideUrlLoading(view:WebView,request:WebResourceRequest):Boolean{
+                        val url=request.url
+                        if(url.scheme=="https"&&url.host=="sophia.invalid"){
+                            val index=state.document.units.indexOfFirst{it.href==url.path?.removePrefix("/")}
+                            if(index>=0&&index!=state.unit)vm.go(index)
+                            if(index==state.unit)return false
+                        }
+                        return true
+                    }
+                    override fun onPageFinished(view:WebView,url:String){
+                        if(reader.loadedKey!=requestKey || url!="https://sophia.invalid/$href")return
+                        view.post{if(reader.loadedKey==requestKey){view.scrollTo(0,(initialFraction*(view.contentHeight*view.resources.displayMetrics.density-view.height).coerceAtLeast(0f)).toInt());reader.restoring=false}}
+                    }
                 }
-                override fun onPageFinished(view:WebView,url:String){
-                    view.post{view.scrollTo(0,(initialFraction*(view.contentHeight*view.resources.displayMetrics.density-view.height).coerceAtLeast(0f)).toInt());(view as LocalBookWebView).restoring=false}
-                }
+                reader.loadUrl("https://sophia.invalid/$href")
             }
-            loadUrl("https://sophia.invalid/$href")
-        }},modifier=Modifier.fillMaxSize().testTag("epub-content"),onRelease={it.stopLoading();it.destroy()})
+        },modifier=Modifier.fillMaxSize().testTag("epub-content"),onRelease={it.onScroll=null;it.stopLoading();it.destroy()})
+        if(page.key!=requestKey)CircularProgressIndicator(Modifier.align(Alignment.Center))
+        else if(page.error!=null)EmptyPanel("Recurso indisponível",page.error!!)
     }
 }
+
 private fun blocked()=WebResourceResponse("text/plain","UTF-8",403,"Bloqueado",emptyMap(),ByteArrayInputStream(ByteArray(0)))
