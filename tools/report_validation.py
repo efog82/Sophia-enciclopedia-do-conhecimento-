@@ -28,4 +28,6 @@ if args.preview:
             sheet.paste(image,(index*320+(320-image.width)//2,30))
     output=io.BytesIO();sheet.save(output,format='PNG',optimize=True)
     Path('screenshots/revisao-visual.png').write_bytes(output.getvalue())
-    print('SOPHIA_PREVIEW_PNG '+base64.b64encode(output.getvalue()).decode())
+    encoded=base64.b64encode(output.getvalue()).decode()
+    for offset in range(0,len(encoded),8192):
+        print('SOPHIA_PREVIEW_PNG '+encoded[offset:offset+8192])

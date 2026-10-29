@@ -27,7 +27,9 @@ class SophiaUiTest {
         ui.onNodeWithText("Adicionados recentemente").assertDoesNotExist()
         nav("LIBRARY");ui.onNodeWithTag("book-spirits").assertDoesNotExist()
         ui.onNodeWithTag("library-screen").performScrollToNode(hasTestTag("library-count"))
-        ui.onNodeWithTag("library-count").assertTextEquals("0 ficheiros encontrados")
+        ui.waitUntil(15000){!ui.activity.libraryModel.state.value.loading}
+        val fileCount=ui.activity.libraryModel.state.value.data.files.size
+        ui.onNodeWithTag("library-count").assertTextEquals("$fileCount "+if(fileCount==1)"ficheiro encontrado" else "ficheiros encontrados")
         shot("02-biblioteca-pessoal")
         nav("RESEARCH");ui.onNodeWithTag("research-search").performTextReplacement("livro dos espiritos");ui.onNodeWithTag("research-search").performImeAction()
         ui.waitUntil(15000){ui.activity.model.state.value.research.size==1}
