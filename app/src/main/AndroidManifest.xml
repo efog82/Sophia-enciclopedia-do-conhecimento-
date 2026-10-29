@@ -1,5 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <application android:name=".SophiaApplication" android:allowBackup="false" android:dataExtractionRules="@xml/data_extraction_rules" android:supportsRtl="true" android:label="Sophia" android:icon="@mipmap/ic_launcher" android:theme="@style/Theme.Sophia">
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <application android:name=".SophiaApplication" android:allowBackup="false" android:usesCleartextTraffic="false" android:dataExtractionRules="@xml/data_extraction_rules" android:supportsRtl="true" android:label="Sophia" android:icon="@mipmap/ic_launcher" android:theme="@style/Theme.Sophia">
+        <activity android:name=".StudyActivity" android:exported="false" android:windowSoftInputMode="adjustResize"/>
+        <activity android:name=".ReadiumActivity" android:exported="false" android:windowSoftInputMode="adjustResize"/>
         <activity android:name=".ReaderActivity" android:exported="false" android:windowSoftInputMode="adjustResize"/>
         <activity android:name=".MainActivity" android:exported="true" android:windowSoftInputMode="adjustResize">
             <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>

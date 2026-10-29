@@ -39,11 +39,12 @@ interface NotesDao {
     @Upsert suspend fun save(value:NoteEntity)
     @Query("DELETE FROM study_notes WHERE id=:id") suspend fun delete(id:String)
 }
-@Database(entities=[WorkEntity::class,PersonEntity::class,TraditionEntity::class,CategoryEntity::class,WorkContributorEntity::class,WorkTraditionEntity::class,WorkCategoryEntity::class,TranslationEntity::class,EditionEntity::class,EditionContributorEntity::class,BookFileEntity::class,FavoriteEntity::class,ReadingProgressEntity::class,NoteEntity::class,CatalogMetadataEntity::class,BookmarkEntity::class,StudyCollectionEntity::class,CollectionWorkEntity::class],version=2,exportSchema=true)
+@Database(entities=[WorkEntity::class,PersonEntity::class,TraditionEntity::class,CategoryEntity::class,WorkContributorEntity::class,WorkTraditionEntity::class,WorkCategoryEntity::class,TranslationEntity::class,EditionEntity::class,EditionContributorEntity::class,BookFileEntity::class,FavoriteEntity::class,ReadingProgressEntity::class,NoteEntity::class,CatalogMetadataEntity::class,BookmarkEntity::class,StudyCollectionEntity::class,CollectionWorkEntity::class,ConversationEntity::class,MessageEntity::class,ProviderEntity::class,ModelEntity::class,AnnotationEntity::class],version=3,exportSchema=true)
 abstract class SophiaDatabase:RoomDatabase() {
     abstract fun catalog():CatalogDao
     abstract fun notes():NotesDao
     abstract fun library():LibraryDao
+    abstract fun study():StudyDao
     companion object {
         fun open(context:Context,name:String="sophia.db"):SophiaDatabase=Room.databaseBuilder(context.applicationContext,SophiaDatabase::class.java,name).addMigrations(*DatabaseMigrations.ALL).build()
     }
@@ -68,5 +69,14 @@ object DatabaseMigrations {
         db.execSQL("CREATE TABLE IF NOT EXISTS collection_works (collectionId TEXT NOT NULL, workId TEXT NOT NULL, position INTEGER NOT NULL, PRIMARY KEY(collectionId,workId), FOREIGN KEY(collectionId) REFERENCES study_collections(id) ON UPDATE NO ACTION ON DELETE CASCADE, FOREIGN KEY(workId) REFERENCES works(id) ON UPDATE NO ACTION ON DELETE CASCADE)")
         db.execSQL("CREATE INDEX index_collection_works_workId ON collection_works(workId)")
     }}
-    val ALL:Array<Migration> = arrayOf(V1_TO_V2)
+    val V2_TO_V3=object:Migration(2,3){override fun migrate(db:androidx.sqlite.db.SupportSQLiteDatabase){
+        db.execSQL("CREATE TABLE IF NOT EXISTS study_conversations (id TEXT NOT NULL PRIMARY KEY,title TEXT NOT NULL,createdAt INTEGER NOT NULL,updatedAt INTEGER NOT NULL,mode TEXT NOT NULL,sourceTitle TEXT,sourceLocator TEXT,sourceExcerpt TEXT)")
+        db.execSQL("CREATE TABLE IF NOT EXISTS study_messages (id TEXT NOT NULL PRIMARY KEY,conversationId TEXT NOT NULL,role TEXT NOT NULL,content TEXT NOT NULL,createdAt INTEGER NOT NULL,provider TEXT,model TEXT,contextReduced INTEGER NOT NULL,diagnostic TEXT NOT NULL,FOREIGN KEY(conversationId) REFERENCES study_conversations(id) ON UPDATE NO ACTION ON DELETE CASCADE)")
+        db.execSQL("CREATE INDEX index_study_messages_conversationId ON study_messages(conversationId)")
+        db.execSQL("CREATE TABLE IF NOT EXISTS study_providers (id TEXT NOT NULL PRIMARY KEY,enabled INTEGER NOT NULL,freeAccountConfirmed INTEGER NOT NULL,error TEXT NOT NULL,quotaInfo TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE IF NOT EXISTS study_models (provider TEXT NOT NULL,modelId TEXT NOT NULL,label TEXT NOT NULL,contextTokens INTEGER NOT NULL,validatedAt INTEGER NOT NULL,cooldownUntil INTEGER NOT NULL,preferred INTEGER NOT NULL,PRIMARY KEY(provider,modelId))")
+        db.execSQL("CREATE TABLE IF NOT EXISTS text_annotations (id TEXT NOT NULL PRIMARY KEY,fileId TEXT NOT NULL,locatorJson TEXT NOT NULL,excerpt TEXT NOT NULL,style TEXT NOT NULL,color INTEGER NOT NULL,note TEXT NOT NULL,createdAt INTEGER NOT NULL,FOREIGN KEY(fileId) REFERENCES book_files(id) ON UPDATE NO ACTION ON DELETE CASCADE)")
+        db.execSQL("CREATE INDEX index_text_annotations_fileId ON text_annotations(fileId)")
+    }}
+    val ALL:Array<Migration> = arrayOf(V1_TO_V2,V2_TO_V3)
 }

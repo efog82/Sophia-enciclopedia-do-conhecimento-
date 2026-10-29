@@ -17,8 +17,8 @@ import java.security.MessageDigest
 import java.util.UUID
 
 object LocationCodec {
-    fun encode(location:ReadingLocation)=JSONObject().put("version",1).put("unit",location.unit).put("fraction",location.fraction).toString()
-    fun decode(value:String):ReadingLocation{val json=JSONObject(value);require(json.getInt("version")==1){"Versão de posição não suportada."};return ReadingLocation(json.getInt("unit"),json.getDouble("fraction"))}
+    fun encode(location:ReadingLocation)=JSONObject().put("version",if(location.readiumLocator==null)1 else 2).put("unit",location.unit).put("fraction",location.fraction).putOpt("readium",location.readiumLocator).toString()
+    fun decode(value:String):ReadingLocation{val json=JSONObject(value);require(json.getInt("version") in 1..2){"Versão de posição não suportada."};return ReadingLocation(json.getInt("unit"),json.getDouble("fraction"),if(json.has("readium"))json.getString("readium")else null)}
 }
 class LocalLibraryRepository(private val context:Context,private val db:SophiaDatabase):LibraryRepository {
     private val mutex=Mutex()

@@ -3,7 +3,7 @@ package com.sophia.domain
 import kotlinx.coroutines.flow.Flow
 
 /** Locators refer to a file edition, never to an abstract original work. */
-data class ReadingLocation(val unit:Int=0,val fraction:Double=0.0) {
+data class ReadingLocation(val unit:Int=0,val fraction:Double=0.0,val readiumLocator:String?=null) {
     init { require(unit>=0);require(fraction.isFinite() && fraction in 0.0..1.0) }
 }
 data class LibraryFile(val id:String,val workId:String,val title:String,val displayName:String,val mimeType:String,val sizeBytes:Long,val sha256:String,val rightsStatus:String,val addedAt:Long,val location:ReadingLocation?=null,val progressPermille:Int=0,val updatedAt:Long=0)

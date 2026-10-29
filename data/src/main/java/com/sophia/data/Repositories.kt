@@ -14,11 +14,11 @@ import kotlinx.coroutines.flow.*
 import java.io.IOException
 import java.util.UUID
 
-class RoomCatalogRepository(private val db:SophiaDatabase):CatalogRepository {
+class RoomCatalogRepository(private val db:SophiaDatabase,private val bundledContext:Context?=null):CatalogRepository {
     override val books=db.catalog().observeWorks().map{rows->rows.map{row->Book(row.work.id,row.work.title,row.work.description,row.work.originalYear,row.work.sourceUrl,row.work.sourceLabel,row.work.metadataNote,row.work.addedAt,row.credits.map{Contributor(it.person.id,it.person.displayName,ContributorRole.valueOf(it.credit.role))}.sortedBy{it.role.ordinal},row.traditions.map{Tradition(it.id,it.name,it.description,it.historicalContext,it.concepts,it.sources)},row.categories.map{Category(it.id,it.name)},row.editions.map{e->Edition(e.edition.id,e.edition.label,e.edition.publisher,e.edition.publicationYear,e.edition.language,e.edition.translationId,e.files.size,e.credits.map{Contributor(it.person.id,it.person.displayName,ContributorRole.valueOf(it.credit.role))},e.edition.rightsStatus,e.edition.sourceUrl)},row.favorites.isNotEmpty())}}
     override val traditions=db.catalog().observeTraditions().map{rows->rows.map{Tradition(it.id,it.name,it.description,it.historicalContext,it.concepts,it.sources)}}
     override val categories=db.catalog().observeCategories().map{rows->rows.map{Category(it.id,it.name)}}
-    override suspend fun initialize(){DemoCatalog.seed(db);ExpandedCatalog.seed(db)}
+    override suspend fun initialize(){DemoCatalog.seed(db);ExpandedCatalog.seed(db);bundledContext?.let{BundledBooks.install(it,db)}}
     override suspend fun setFavorite(workId:String,favorite:Boolean){if(favorite)db.catalog().addFavorite(FavoriteEntity(workId,System.currentTimeMillis())) else db.catalog().removeFavorite(workId)}
 }
 class RoomNotesRepository(private val db:SophiaDatabase):NotesRepository {

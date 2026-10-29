@@ -1,7 +1,7 @@
 name: Sophia Android
 on:
   push:
-    branches: [main, feature/fase-2-biblioteca]
+    branches: [main, feature/fase-2-biblioteca, feature/fase-3-estudo]
   workflow_dispatch:
 permissions:
   contents: read
@@ -55,11 +55,11 @@ jobs:
       - name: Preparar APK e verificações
         run: |
           mkdir -p distribution
-          cp app/build/outputs/apk/debug/app-debug.apk distribution/Sophia-v0.2.0-debug.apk
-          python3 -c "from zipfile import ZipFile; files=['tools/migrate_v01.py','tools/migrar-v01.bat','docs/MIGRACAO-V01.md']; z=ZipFile('distribution/Sophia-v0.2.0-migracao.zip','w'); [z.write(p,p) for p in files]; z.close()"
+          cp app/build/outputs/apk/debug/app-debug.apk distribution/Sophia-v0.3.0-debug.apk
+          python3 -c "from zipfile import ZipFile; files=['tools/migrate_v01.py','tools/migrar-v01.bat','docs/MIGRACAO-V01.md']; z=ZipFile('distribution/Sophia-v0.3.0-migracao.zip','w'); [z.write(p,p) for p in files]; z.close()"
           cd distribution
-          sha256sum Sophia-v0.2.0-debug.apk Sophia-v0.2.0-migracao.zip > SHA256SUMS.txt
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs Sophia-v0.2.0-debug.apk > assinatura.txt
+          sha256sum Sophia-v0.3.0-debug.apk Sophia-v0.3.0-migracao.zip > SHA256SUMS.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs Sophia-v0.3.0-debug.apk > assinatura.txt
       - uses: actions/upload-artifact@v4
         with:
           name: sophia-apk
@@ -125,7 +125,7 @@ jobs:
             adb install baseline/Sophia-v0.1.0-debug.apk
             adb shell am start -W -n com.sophia.enciclopedia/.MainActivity
             adb shell uiautomator dump /sdcard/Download/Sophia-Test/antes-atualizacao.xml
-            python3 tools/test_device_migration.py --apk distribution/Sophia-v0.2.0-debug.apk --backup-dir /tmp/sophia-migration-test
+            python3 tools/test_device_migration.py --apk distribution/Sophia-v0.3.0-debug.apk --backup-dir /tmp/sophia-migration-test
             adb shell am start -W -n com.sophia.enciclopedia/.MainActivity
             adb shell uiautomator dump /sdcard/Download/Sophia-Test/instalacao.xml
             adb shell screencap -p /sdcard/Download/Sophia-Test/instalacao.png
@@ -158,4 +158,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create sophia-v0.2.0 distribution/* --target "$GITHUB_SHA" --prerelease --title 'Sophia v0.2.0 — Fase 2' --notes 'Biblioteca universal offline: 40 referências e 10 tradições. IMPORTANTE: a assinatura original da v0.1.0 não foi conservada; atualização direta não é possível. Para conservar dados, usar a ferramenta de migração assistida via ADB, com backup validado e restauro automático, conforme README. Nunca desinstalar manualmente sem backup. Novas instalações funcionam diretamente. Inclui importação EPUB/PDF/TXT, leitor offline, marcadores, retoma, notas por posição e coleções/listas. Migração explícita Room 1 para 2, sem apagar favoritos ou notas. Assistente IA explicitamente em desenvolvimento. Sem livros integrais ou ficheiros incluídos. A release original v0.1.0 foi preservada. Limites dos formatos e resultados dos testes documentados. APK debug assinado, Android 8.0 ou superior. Consulte README e documentação de testes no repositório. Publicação condicionada a testes unitários, Android e lint.'
+          gh release create sophia-v0.3.0 distribution/* --target "$GITHUB_SHA" --prerelease --title 'Sophia v0.3.0 — Leitor e estudo com IA' --notes 'Sophia v0.3.0: navegador EPUB Readium, destaques e sublinhados, notas ligadas a passagens, dois livros integrais em português de Portugal histórico e assistente de estudo com Gemini, Groq e modelos OpenRouter :free. Conversas locais preservadas ao alternar modelos; chaves gratuitas e consentimento necessários. Migração explícita Room 2 para 3. Atualização direta a partir da v0.2.0 com a mesma assinatura. Utilizadores da v0.1.0 devem seguir o procedimento de migração assistida, sem desinstalar manualmente. Resultados reais e limites no README e documentação; nenhuma resposta de IA simulada. APK debug para Android 8 ou superior.'

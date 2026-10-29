@@ -23,7 +23,7 @@ class SophiaUiTest {
 
     @Test fun completeOfflineJourney(){
         ready();nav("HOME");ui.onNodeWithTag("theme-settings").performClick();ui.onNodeWithTag("theme-LIGHT").performClick();ui.waitUntil(15000){ui.activity.model.state.value.theme==com.sophia.domain.ThemeMode.LIGHT};shot("01-inicio")
-        assertEquals(PackageManager.PERMISSION_DENIED,ui.activity.checkSelfPermission(Manifest.permission.INTERNET))
+        assertEquals(PackageManager.PERMISSION_GRANTED,ui.activity.checkSelfPermission(Manifest.permission.INTERNET));assertFalse((ui.activity.application as SophiaApplication).container.study.keys.externalConsent)
         nav("LIBRARY");ui.onNodeWithTag("library-search").performTextReplacement("livro dos espiritos");ui.onNodeWithTag("library-search").performImeAction()
         ui.waitUntil(15000){ui.activity.model.state.value.library.size==1};ui.onNodeWithTag("library-screen").performScrollToNode(hasTestTag("library-count"));awaitText("1 obra encontrada");ui.onNodeWithTag("library-count").assertTextEquals("1 obra encontrada")
         ui.onNodeWithTag("library-screen").performScrollToNode(hasTestTag("book-spirits"));ui.onNodeWithTag("book-spirits").performClick();ui.onNodeWithTag("book-details").assertExists()
@@ -36,7 +36,7 @@ class SophiaUiTest {
         nav("RESEARCH");ui.onNodeWithTag("research-search").performTextInput("dhammapada");ui.onNodeWithTag("research-search").performImeAction();ui.waitUntil(15000){ui.activity.model.state.value.research.size==1};ui.onNodeWithTag("research-screen").performScrollToNode(hasText("1 resultado de metadados"));awaitText("1 resultado de metadados");ui.onNodeWithText("1 resultado de metadados").assertExists()
         ui.onNodeWithTag("research-screen").performScrollToIndex(0);ui.onAllNodesWithText("Todos")[0].performClick();ui.onNodeWithText("Allan Kardec").performScrollTo().performClick();ui.waitUntil(15000){ui.activity.model.state.value.research.isEmpty()};ui.onNodeWithTag("research-screen").performScrollToNode(hasText("Não encontrámos correspondências"));awaitText("Não encontrámos correspondências")
         ui.onNodeWithText("Limpar").performScrollTo().performClick();ui.onNodeWithTag("research-screen").performScrollToNode(hasText("Por onde queres começar?"));awaitText("Por onde queres começar?")
-        nav("AI");ui.onNodeWithText("Em desenvolvimento · fase futura").assertExists();shot("03-assistente")
+        nav("AI");ui.onNodeWithTag("assistant-screen").assertExists();ui.onNodeWithText("Configurar fornecedor gratuito").assertExists();shot("03-assistente")
         nav("NOTES");ui.onNodeWithTag("new-note").performClick()
         ui.onNodeWithTag("save-note").performScrollTo().performClick();awaitTag("note-error")
         ui.onNodeWithTag("note-title").performScrollTo()

@@ -5,7 +5,7 @@ Unmodified EPUBs retain their Project Gutenberg notices and licence.
 import hashlib,json,urllib.request,zipfile,io,xml.etree.ElementTree as ET
 from pathlib import Path
 BOOKS=[
- dict(id='pg-26776',gutenberg=26776,title='A philosophia da natureza dos naturalistas',author='Antero de Quental',authorDied=1891,tradition='ancient-philosophy',description='Ensaio filosófico português sobre naturalismo e metafísica. Texto histórico: as suas teses não representam consenso científico atual.'),
+ dict(id='pg-26776',gutenberg=26776,title='A philosophia da natureza dos naturalistas',author='Antero de Quental',authorDied=1891,tradition='portuguese-philosophy',description='Ensaio filosófico português sobre naturalismo e metafísica. Texto histórico: as suas teses não representam consenso científico atual.'),
  dict(id='pg-23526',gutenberg=23526,title='A Velhice do Padre Eterno',author='Guerra Junqueiro',authorDied=1923,tradition='christianity',description='Obra poética portuguesa de crítica religiosa e institucional. Representa a perspetiva do autor, não uma apresentação normativa do Cristianismo.'),
 ]
 def main():

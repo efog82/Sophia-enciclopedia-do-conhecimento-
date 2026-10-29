@@ -145,8 +145,9 @@ class Device:
 
 def migrate(device, apk, backup_dir, reinstall=False, confirmed=False):
     info = apk_info(apk)
-    if info.get("package") != PACKAGE or info.get("versionCode") != 2 or not info.get("debuggable"):
-        raise ValueError("Escolha o APK debug oficial Sophia v0.2.0, com o identificador original")
+    if info.get("package") != PACKAGE or info.get("versionCode") not in (2,3) or not info.get("debuggable"):
+        raise ValueError("Escolha o APK debug oficial Sophia v0.2.0 ou v0.3.0, com o identificador original")
+    target_schema = 3 if info.get("versionCode") == 3 else 2
     paths = device.run("shell", "pm", "path", PACKAGE).decode().strip().splitlines()
     if len(paths) != 1 or not paths[0].startswith("package:"):
         raise ValueError("A ferramenta exige uma instalação antiga de APK único")
@@ -196,18 +197,18 @@ def migrate(device, apk, backup_dir, reinstall=False, confirmed=False):
             device.stop()
             with tempfile.TemporaryDirectory(prefix="sophia-check-") as temporary:
                 after = extract_snapshot(device.snapshot(), Path(temporary))
-            if after["schema"] == 2:
+            if after["schema"] == target_schema:
                 if any(before[name] != after[name] for name in (*PERSONAL, "preferences")):
                     raise ValueError("As notas/favoritos não coincidem com o backup")
                 verified = True
                 break
         if not verified:
-            raise ValueError("A aplicação não concluiu a migração Room para o esquema 2")
+            raise ValueError(f"A aplicação não concluiu a migração Room para o esquema {target_schema}")
         manifest["destination"] = after
         manifest["verified"] = True
         (backup_dir / "verificacao.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
         device.start()
-        print("MIGRAÇÃO VERIFICADA: notas e favoritos conservados; esquema Room 1→2. Backup mantido.")
+        print(f"MIGRAÇÃO VERIFICADA: notas e favoritos conservados; esquema Room 1→{target_schema}. Backup mantido.")
     except Exception:
         if removed:
             print("A migração falhou. A repor o APK original e o backup validado…")

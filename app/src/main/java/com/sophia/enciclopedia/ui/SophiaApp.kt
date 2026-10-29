@@ -23,7 +23,7 @@ import com.sophia.domain.*
 import com.sophia.enciclopedia.*
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Composable fun SophiaApp(vm:SophiaViewModel,libraryVm:LibraryViewModel){
+@Composable fun SophiaApp(vm:SophiaViewModel,libraryVm:LibraryViewModel,studyVm:StudyViewModel){
     val state by vm.state.collectAsStateWithLifecycle()
     val libraryState by libraryVm.state.collectAsStateWithLifecycle()
     val importing by libraryVm.importing.collectAsStateWithLifecycle()
@@ -59,7 +59,7 @@ import com.sophia.enciclopedia.*
             when{
                 state.loading->Column(Modifier.padding(24.dp)){CircularProgressIndicator();Text("A abrir a biblioteca…",Modifier.padding(top=16.dp))}
                 state.error!=null->Column(Modifier.padding(24.dp)){EmptyPanel("Dados locais indisponíveis",state.error!!);Button(onClick=vm::retry){Text("Tentar novamente")}}
-                else->when(section){Section.HOME->HomeScreen(state,vm,busy,libraryState.data,read,{traditionsOpen=true});Section.LIBRARY->LibraryScreen(state,vm,busy,libraryState.data,read,{pick(null)},{collectionsOpen=true},{traditionsOpen=true});Section.RESEARCH->ResearchScreen(state,vm,busy);Section.AI->AssistantScreen();Section.NOTES->NotesScreen(state,vm){deleteId=it.id}}
+                else->when(section){Section.HOME->HomeScreen(state,vm,busy,libraryState.data,read,{traditionsOpen=true});Section.LIBRARY->LibraryScreen(state,vm,busy,libraryState.data,read,{pick(null)},{collectionsOpen=true},{traditionsOpen=true});Section.RESEARCH->ResearchScreen(state,vm,busy);Section.AI->StudyScreen(studyVm);Section.NOTES->NotesScreen(state,vm){deleteId=it.id}}
             }
         }}
         if(themeOpen)AlertDialog(onDismissRequest={themeOpen=false},title={Text("Aspeto da aplicação")},text={Column{ThemeMode.entries.forEach{mode->TextButton(onClick={vm.theme(mode);themeOpen=false},modifier=Modifier.fillMaxWidth().testTag("theme-${mode.name}")){Text((if(mode==state.theme)"✓  " else "")+when(mode){ThemeMode.SYSTEM->"Seguir o sistema";ThemeMode.LIGHT->"Claro";ThemeMode.DARK->"Escuro"})}}}},confirmButton={TextButton(onClick={themeOpen=false}){Text("Fechar")}})
@@ -89,7 +89,7 @@ import com.sophia.enciclopedia.*
             Text("Ano da obra original: ${book.originalYear?.toString()?:"Não verificado"}")
             Text("Edições e ficheiros",style=MaterialTheme.typography.titleMedium)
             if(book.editions.isEmpty())Text("Nenhuma edição, tradução ou ficheiro selecionado. Editora, data da edição e direitos de utilização não verificados. Não existe um livro disponível para leitura nesta referência.")
-            book.editions.forEach{edition->OutlinedCard{Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){Text(edition.label?:"Edição sem designação verificada");Text("Idioma: ${edition.language?:"Não verificado"} · Ano da edição: ${edition.year?:"Não verificado"}");Text("Editora: ${edition.publisher?:"Não verificada"}");edition.contributors.forEach{Text("${it.name} · ${it.role.label}")};Text(if(edition.rightsStatus=="USER_AUTHORISED_NOT_VERIFIED")"Uso pessoal autorizado por declaração do utilizador; licença não verificada pela Sophia." else "Direitos da edição concreta: não verificados.");edition.sourceUrl?.let{url->Text(url,style=MaterialTheme.typography.bodySmall)}}}}
+            book.editions.forEach{edition->OutlinedCard{Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){Text(edition.label?:"Edição sem designação verificada");Text("Idioma: ${edition.language?:"Não verificado"} · Ano da edição: ${edition.year?:"Não verificado"}");Text("Editora: ${edition.publisher?:"Não verificada"}");edition.contributors.forEach{Text("${it.name} · ${it.role.label}")};Text(if(edition.rightsStatus=="USER_AUTHORISED_NOT_VERIFIED")"Uso pessoal autorizado por declaração do utilizador; licença não verificada pela Sophia." else if(edition.rightsStatus=="PUBLIC_DOMAIN_PT_US")"Obra em domínio público em Portugal e nos EUA. Licença e créditos da edição digital conservados no livro." else "Direitos da edição concreta: não verificados.");edition.sourceUrl?.let{url->Text(url,style=MaterialTheme.typography.bodySmall)}}}}
             library.files.filter{it.workId==book.id}.forEach{file->FileCard(file){onRead(file)}}
             Button(onClick=onImport,modifier=Modifier.fillMaxWidth().testTag("book-import")){Text("Importar ficheiro para esta obra")}
             Text("Coleções e listas",style=MaterialTheme.typography.titleMedium)
