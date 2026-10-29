@@ -2,7 +2,7 @@
 
 **v0.2.0 · fase 2.** Android nativo em Kotlin/Jetpack Compose/Material 3, offline e em português de Portugal. Mantém os módulos `app`, `domain` e `data`, com MVVM, Repository, Room e DataStore.
 
-A v0.1.0 e a sua release permanecem disponíveis. O desenvolvimento da fase 2 está na branch `feature/fase-2-biblioteca`, com compilação e testes no GitHub Actions. Consulte o [relatório da fase 2](docs/TESTES-FASE2.md) para o estado efetivamente verificado.
+A v0.1.0 e a sua release permanecem disponíveis. A fase 2 foi desenvolvida na branch `feature/fase-2-biblioteca`, com integração em `main` após validação no GitHub Actions. Consulte o [relatório da fase 2](docs/TESTES-FASE2.md) para o estado efetivamente verificado.
 
 ## O que inclui
 
