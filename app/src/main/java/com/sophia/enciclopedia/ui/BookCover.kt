@@ -22,9 +22,9 @@ import com.sophia.enciclopedia.SophiaApplication
 /** Original typography is a fallback, never a claimed facsimile of a published edition. */
 @Composable fun BookCover(title:String,traditionId:String?=null,fileId:String?=null,mimeType:String?=null,modifier:Modifier=Modifier){
     val context=LocalContext.current
-    val bitmap by produceState<Bitmap?>(null,fileId){
-        value=null
-        if(fileId!=null)value=(context.applicationContext as SophiaApplication).container.library.cover(fileId)
+    var bitmap by remember(fileId){mutableStateOf<Bitmap?>(null)}
+    LaunchedEffect(fileId){
+        if(fileId!=null)bitmap=(context.applicationContext as SophiaApplication).container.library.cover(fileId)
     }
     val symbol=when(traditionId){"hinduism"->"ॐ";"buddhism"->"☸";"christianity"->"✝";"judaism"->"✡";"islam"->"☪";"taoism"->"☯";"ancient-philosophy"->"Φ";"confucianism"->"儒";else->"✧"}
     val palettes=listOf(Color(0xFF174D49),Color(0xFF3C3569),Color(0xFF6B3F32),Color(0xFF294866))

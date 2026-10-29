@@ -4,7 +4,7 @@ A v0.3.0 parte da v0.2.0 publicada, sem alterar o esquema Room 2, os identificad
 
 ## Conteúdo editorial
 
-`data/HistoricalEncyclopedia.kt` contém 17 artigos offline: seis áreas existentes e onze tradições/perspetivas, incluindo ateísmo/agnosticismo. São cerca de 4 700 palavras originais, divididas em secções, com datas/lugares, personagens, conceitos, relações e fontes numeradas localmente. `domain/History.kt` define os modelos e a pesquisa sem acentos. O Repository fornece os artigos ao ViewModel; a interface não escreve conteúdo histórico na base pessoal.
+`data/HistoricalEncyclopedia.kt` contém 17 artigos offline: seis áreas existentes e onze tradições/perspetivas, incluindo ateísmo/agnosticismo. São cerca de 6 000 palavras originais, divididas em secções, com datas/lugares, personagens, conceitos, relações e fontes numeradas localmente. `domain/History.kt` define os modelos e a pesquisa sem acentos. O Repository fornece os artigos ao ViewModel; a interface não escreve conteúdo histórico na base pessoal.
 
 Cada secção identifica os números das fontes usadas. As ligações abrem no navegador externo; a aplicação mantém-se sem permissão de Internet. Os textos da Sophia são redação editorial, não capítulos ou excertos apresentados como sendo de livros antigos. Não se reproduzem artigos completos de terceiros.
 

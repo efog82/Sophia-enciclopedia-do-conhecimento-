@@ -63,7 +63,7 @@ object BookDocuments {
         val authors=opf.getAllElements().filter{it.normalName().substringAfterLast(':')=="creator"}.map{it.text().trim()}.filter{it.isNotEmpty()}.distinct()
         val declaredCoverId=opf.getAllElements().firstOrNull{it.normalName().substringAfterLast(':')=="meta"&&it.attr("name")=="cover"}?.attr("content")
         val coverItem=manifest.values.firstOrNull{it.attr("properties").split(Regex("\\s+")).contains("cover-image")}
-            ?:manifest[declaredCoverId]
+            ?:declaredCoverId?.let{manifest[it]}
         val coverHref=coverItem?.takeIf{it.attr("media-type") in listOf("image/jpeg","image/png","image/webp")}
             ?.let{runCatching{normalizedPath(opfPath,it.attr("href"))}.getOrNull()}
         return BookDocument(FileMetadata(field("title"),authors,field("language"),field("publisher"),field("date")?.take(4)?.toIntOrNull()?.takeIf{it in 1..9999}),units,true,coverHref)
