@@ -41,14 +41,14 @@ import com.sophia.domain.Book
         }
     }
 }
-@Composable fun SelectFilter(label:String,value:String?,options:List<Pair<String,String>>,onChange:(String?)->Unit,modifier:Modifier=Modifier){
+@Composable fun SelectFilter(label:String,value:String?,options:List<Pair<String,String>>,onChange:(String?)->Unit,modifier:Modifier=Modifier,emptyLabel:String="Todos"){
     var expanded by remember{mutableStateOf(false)}
     Column(modifier){Text(label,style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
         Box{OutlinedButton(onClick={expanded=true},modifier=Modifier.fillMaxWidth(),shape=RoundedCornerShape(14.dp)){
-            Text(options.firstOrNull{it.first==value}?.second?:"Todos",Modifier.weight(1f),maxLines=1,overflow=TextOverflow.Ellipsis);Icon(Icons.Outlined.ExpandMore,null,Modifier.size(18.dp))
+            Text(options.firstOrNull{it.first==value}?.second?:emptyLabel,Modifier.weight(1f),maxLines=1,overflow=TextOverflow.Ellipsis);Icon(Icons.Outlined.ExpandMore,null,Modifier.size(18.dp))
         }
             DropdownMenu(expanded=expanded,onDismissRequest={expanded=false},modifier=Modifier.heightIn(max=340.dp)){
-                DropdownMenuItem(text={Text("Todos")},onClick={onChange(null);expanded=false})
+                DropdownMenuItem(text={Text(emptyLabel)},onClick={onChange(null);expanded=false})
                 options.forEach{(id,title)->DropdownMenuItem(text={Text(title)},onClick={onChange(id);expanded=false})}
             }
         }

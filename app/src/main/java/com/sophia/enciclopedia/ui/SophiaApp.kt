@@ -85,7 +85,7 @@ import com.sophia.enciclopedia.*
             Text(if(editor.id==null)"Nova nota de estudo" else "Editar nota",style=MaterialTheme.typography.headlineSmall)
             OutlinedTextField(editor.title,vm::editTitle,label={Text("Título")},singleLine=true,enabled=!saving,supportingText={Text("${editor.title.length}/160")},modifier=Modifier.fillMaxWidth().testTag("note-title"))
             OutlinedTextField(editor.body,vm::editBody,label={Text("Reflexões e apontamentos")},minLines=6,enabled=!saving,modifier=Modifier.fillMaxWidth().testTag("note-body"))
-            SelectFilter("Obra associada (opcional)",editor.workId,books.map{it.id to it.title},vm::editWork)
+            SelectFilter("Obra associada (opcional)",editor.workId,books.map{it.id to it.title},vm::editWork,emptyLabel="Sem obra associada")
             if(editor.workId==null)Text("Nota livre, sem obra associada.",style=MaterialTheme.typography.bodySmall)
             error?.let{Text(it,color=MaterialTheme.colorScheme.error,modifier=Modifier.testTag("note-error"))}
             Button(onClick=vm::saveNote,enabled=!saving,modifier=Modifier.fillMaxWidth().testTag("save-note")){Text(if(saving)"A guardar…" else "Guardar nota")}
