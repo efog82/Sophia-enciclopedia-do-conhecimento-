@@ -31,6 +31,13 @@ class LocalLibraryRepository(private val context:Context,private val db:SophiaDa
     override suspend fun file(id:String):LibraryFile {val row=db.library().fileOnce(id)?:error("O ficheiro já não existe na biblioteca.");return mapFile(row,db.library().workTitle(row.edition.workId)?:"Obra importada")}
     suspend fun localFile(id:String):File=withContext(Dispatchers.IO){val row=db.library().fileOnce(id)?:error("O ficheiro já não existe na biblioteca.");val result=File(Uri.parse(row.file.uri).path?:error("Localização inválida."));require(result.canonicalFile.parentFile==directory.canonicalFile && result.isFile){"O ficheiro local não está disponível. Volte a importá-lo."};result}
     suspend fun document(id:String):BookDocument=withContext(Dispatchers.IO){val info=file(id);val f=localFile(id);when(info.mimeType){"application/epub+zip"->BookDocuments.epub(f);"text/plain"->BookDocuments.text(f);"application/pdf"->{ParcelFileDescriptor.open(f,ParcelFileDescriptor.MODE_READ_ONLY).use{descriptor->PdfRenderer(descriptor).use{pdf->BookDocument(FileMetadata(),(0 until pdf.pageCount).map{ReadingUnit("page:$it","Página ${it+1}")},false)}}};else->error("Formato não suportado.")}}
+    suspend fun pdfPage(id:String,index:Int):android.graphics.Bitmap=withContext(Dispatchers.IO){
+        val f=localFile(id)
+        ParcelFileDescriptor.open(f,ParcelFileDescriptor.MODE_READ_ONLY).use{pfd->PdfRenderer(pfd).use{renderer->
+            require(index in 0 until renderer.pageCount)
+            renderer.openPage(index).use{page->val scale=minOf(1600.0/page.width,2400.0/page.height);val bitmap=android.graphics.Bitmap.createBitmap((page.width*scale).toInt().coerceAtLeast(1),(page.height*scale).toInt().coerceAtLeast(1),android.graphics.Bitmap.Config.ARGB_8888);bitmap.eraseColor(android.graphics.Color.WHITE);page.render(bitmap,null,null,PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);bitmap}
+        }}
+    }
     override suspend fun importFile(request:ImportRequest):ImportResult=mutex.withLock{withContext(Dispatchers.IO){
         require(request.authorised){"Confirme que tem autorização para utilizar o ficheiro."}
         val source=Uri.parse(request.sourceUri);require(source.scheme=="content"){"Escolha o ficheiro através do seletor Android."}

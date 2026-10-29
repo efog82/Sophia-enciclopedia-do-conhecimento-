@@ -39,6 +39,9 @@ class RoomNotesRepository(private val db:SophiaDatabase):NotesRepository {
 class DataStorePreferences(context:Context,scope:CoroutineScope=CoroutineScope(SupervisorJob()+Dispatchers.IO),name:String="sophia") : PreferencesRepository {
     private val store=PreferenceDataStoreFactory.create(corruptionHandler=ReplaceFileCorruptionHandler{emptyPreferences()},scope=scope,produceFile={context.applicationContext.preferencesDataStoreFile(name)})
     private val key=stringPreferencesKey("theme")
+    private val fontKey=intPreferencesKey("reader_font_size")
+    override val readerFontSize=store.data.map{it[fontKey]?.coerceIn(12,36)?:20}
+    override suspend fun setReaderFontSize(size:Int){require(size in 12..36);store.edit{it[fontKey]=size}}
     override val theme:Flow<ThemeMode> = store.data.catch{e->if(e is IOException)emit(emptyPreferences()) else throw e}.map{prefs->runCatching{ThemeMode.valueOf(prefs[key]?:"SYSTEM")}.getOrDefault(ThemeMode.SYSTEM)}
     override suspend fun setTheme(mode:ThemeMode){store.edit{it[key]=mode.name}}
 }

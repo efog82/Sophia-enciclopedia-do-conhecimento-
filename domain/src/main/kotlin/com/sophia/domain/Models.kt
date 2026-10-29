@@ -32,7 +32,7 @@ interface NotesRepository {
     suspend fun save(id:String?,title:String,body:String,workId:String?,fileId:String?=null,locatorJson:String?=null,excerpt:String?=null):String
     suspend fun delete(id:String)
 }
-interface PreferencesRepository { val theme:Flow<ThemeMode>; suspend fun setTheme(mode:ThemeMode) }
+interface PreferencesRepository { val theme:Flow<ThemeMode>; suspend fun setTheme(mode:ThemeMode);val readerFontSize:Flow<Int>;suspend fun setReaderFontSize(size:Int) }
 object CatalogSearch {
     fun normalized(text:String):String=Normalizer.normalize(text,Normalizer.Form.NFD).replace(Regex("\\p{M}+"),"").lowercase(Locale.ROOT).trim()
     fun filter(books:List<Book>,query:String="",traditionId:String?=null,authorId:String?=null,categoryId:String?=null,favoritesOnly:Boolean=false):List<Book>{

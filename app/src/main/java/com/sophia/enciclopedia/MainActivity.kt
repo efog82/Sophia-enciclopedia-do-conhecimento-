@@ -14,5 +14,6 @@ class MainActivity:ComponentActivity(){
         val container=(application as SophiaApplication).container
         SophiaViewModel(container.catalog,container.notes,container.preferences,createSavedStateHandle())
     }}}
-    override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);setContent{SophiaApp(model)}}
+    val libraryModel:LibraryViewModel by viewModels{viewModelFactory{initializer{LibraryViewModel((application as SophiaApplication).container.library)}}}
+    override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);setContent{SophiaApp(model,libraryModel)}}
 }

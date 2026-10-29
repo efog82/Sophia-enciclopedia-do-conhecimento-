@@ -14,7 +14,7 @@ data class SophiaState(val loading:Boolean=true,val error:String?=null,val books
     val research get()=CatalogSearch.filter(books,filters.researchQuery,filters.researchTradition,filters.author)
     val filteredNotes get()=notes.filter{CatalogSearch.normalized(it.title+" "+it.body).contains(CatalogSearch.normalized(filters.notesQuery))}
 }
-data class NoteEditorState(val open:Boolean=false,val id:String?=null,val title:String="",val body:String="",val workId:String?=null)
+data class NoteEditorState(val open:Boolean=false,val id:String?=null,val title:String="",val body:String="",val workId:String?=null,val fileId:String?=null,val locatorJson:String?=null,val excerpt:String?=null)
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SophiaViewModel(private val catalog:CatalogRepository,private val notesRepo:NotesRepository,private val preferences:PreferencesRepository,private val saved:SavedStateHandle):ViewModel(){
@@ -28,7 +28,7 @@ class SophiaViewModel(private val catalog:CatalogRepository,private val notesRep
     val state=combine(content,filters){data,f->data.copy(filters=f)}.stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),SophiaState())
     val section=saved.getStateFlow("section",Section.HOME.name)
     val selectedWork=saved.getStateFlow<String?>("work",null)
-    val editor=combine(saved.getStateFlow("editorOpen",false),saved.getStateFlow<String?>("noteId",null),saved.getStateFlow("noteTitle",""),saved.getStateFlow("noteBody",""),saved.getStateFlow<String?>("noteWork",null)){open,id,title,body,work->NoteEditorState(open,id,title,body,work)}.stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),NoteEditorState())
+    val editor=combine(saved.getStateFlow("editorOpen",false),saved.getStateFlow<String?>("noteId",null),saved.getStateFlow("noteTitle",""),saved.getStateFlow("noteBody",""),saved.getStateFlow<String?>("noteWork",null)){open,id,title,body,work->NoteEditorState(open,id,title,body,work,saved["noteFile"],saved["noteLocator"],saved["noteExcerpt"])}.stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),NoteEditorState())
     private val _saving=MutableStateFlow(false);val saving=_saving.asStateFlow()
     private val _editorError=MutableStateFlow<String?>(null);val editorError=_editorError.asStateFlow()
     private val _feedback=MutableStateFlow<String?>(null);val feedback=_feedback.asStateFlow()
@@ -51,11 +51,11 @@ class SophiaViewModel(private val catalog:CatalogRepository,private val notesRep
     fun theme(mode:ThemeMode){viewModelScope.launch{try{preferences.setTheme(mode)}catch(e:CancellationException){throw e}catch(e:Exception){_feedback.value="Não foi possível guardar o tema."}}}
     fun clearFeedback(){_feedback.value=null}
     fun startNote(note:StudyNote?=null,workId:String?=null){
-        _editorError.value=null;saved["noteId"]=note?.id;saved["noteTitle"]=note?.title?:"";saved["noteBody"]=note?.body?:"";saved["noteWork"]=note?.workId?:workId;saved["editorOpen"]=true
+        _editorError.value=null;saved["noteFile"]=note?.fileId;saved["noteLocator"]=note?.locatorJson;saved["noteExcerpt"]=note?.excerpt;saved["noteId"]=note?.id;saved["noteTitle"]=note?.title?:"";saved["noteBody"]=note?.body?:"";saved["noteWork"]=note?.workId?:workId;saved["editorOpen"]=true
     }
     fun editTitle(value:String){if(value.length<=160){saved["noteTitle"]=value;_editorError.value=null}else _editorError.value="O título admite até 160 caracteres."}
     fun editBody(value:String){if(value.length<=50000){saved["noteBody"]=value;_editorError.value=null}else _editorError.value="A nota admite até 50 000 caracteres."}
-    fun editWork(id:String?){saved["noteWork"]=id}
+    fun editWork(id:String?){if(saved.get<String?>("noteWork")!=id){saved["noteFile"]=null;saved["noteLocator"]=null;saved["noteExcerpt"]=null};saved["noteWork"]=id}
     fun closeEditor(){if(!_saving.value){saved["editorOpen"]=false;_editorError.value=null}}
     fun editorDirty():Boolean {
         val e=editor.value;val old=state.value.notes.firstOrNull{it.id==e.id}
@@ -64,7 +64,7 @@ class SophiaViewModel(private val catalog:CatalogRepository,private val notesRep
     fun saveNote(){
         if(_saving.value)return
         val e=editor.value;_saving.value=true;_editorError.value=null
-        viewModelScope.launch{try{notesRepo.save(e.id,e.title,e.body,e.workId);saved["editorOpen"]=false;_feedback.value="Nota guardada no dispositivo."}catch(x:CancellationException){throw x}catch(x:Exception){_editorError.value=if(x is IllegalArgumentException)x.message else "Não foi possível guardar a nota. O texto mantém-se disponível para tentar novamente."}finally{_saving.value=false}}
+        viewModelScope.launch{try{notesRepo.save(e.id,e.title,e.body,e.workId,e.fileId,e.locatorJson,e.excerpt);saved["editorOpen"]=false;_feedback.value="Nota guardada no dispositivo."}catch(x:CancellationException){throw x}catch(x:Exception){_editorError.value=if(x is IllegalArgumentException)x.message else "Não foi possível guardar a nota. O texto mantém-se disponível para tentar novamente."}finally{_saving.value=false}}
     }
     fun deleteNote(id:String){viewModelScope.launch{try{notesRepo.delete(id);_feedback.value="Nota eliminada."}catch(e:CancellationException){throw e}catch(e:Exception){_feedback.value="Não foi possível eliminar a nota."}}}
 }

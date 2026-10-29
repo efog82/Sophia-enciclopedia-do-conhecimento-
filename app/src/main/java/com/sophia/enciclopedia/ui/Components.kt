@@ -35,7 +35,7 @@ import com.sophia.domain.Book
                 Text(book.title,style=MaterialTheme.typography.titleSmall,maxLines=2,overflow=TextOverflow.Ellipsis)
                 Text(book.contributorLabel,style=MaterialTheme.typography.bodySmall,maxLines=2,overflow=TextOverflow.Ellipsis,color=MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(book.traditions.joinToString(" · "){it.name},style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.secondary)
-                Text("Referência · sem ficheiro",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(if(book.editions.sumOf{it.fileCount}>0)"${book.editions.sumOf{it.fileCount}} ficheiros offline" else "Referência · sem ficheiro",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
             }
             IconButton(enabled=!busy,onClick=onFavorite,modifier=Modifier.testTag("favorite-${book.id}").semantics{stateDescription=if(book.favorite)"Nos favoritos" else "Não favorito"}){Icon(if(book.favorite)Icons.Outlined.Bookmark else Icons.Outlined.BookmarkBorder,if(book.favorite)"Remover dos favoritos: ${book.title}" else "Adicionar aos favoritos: ${book.title}",tint=if(book.favorite)MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant)}
         }

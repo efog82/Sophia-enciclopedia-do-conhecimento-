@@ -26,7 +26,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-@Composable fun HomeScreen(state:SophiaState,vm:SophiaViewModel,busy:Set<String>){
+@Composable fun HomeScreen(state:SophiaState,vm:SophiaViewModel,busy:Set<String>,library:LibrarySnapshot,onRead:(LibraryFile)->Unit,onTraditions:()->Unit){
     var query by rememberSaveable{mutableStateOf("")}
     LazyColumn(Modifier.fillMaxSize().testTag("home-screen"),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(18.dp)){
         item{Surface(shape=RoundedCornerShape(24.dp),color=MaterialTheme.colorScheme.primaryContainer){Column(Modifier.fillMaxWidth().padding(22.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
@@ -35,21 +35,29 @@ import java.util.Locale
             Text("Explora obras, tradições e ideias. Constrói o teu próprio caderno de estudo.",style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onPrimaryContainer)
         }}}
         item{OutlinedTextField(query,{query=it},label={Text("Pesquisar título ou autor")},leadingIcon={Icon(Icons.Outlined.Search,null)},trailingIcon={IconButton(enabled=query.isNotBlank(),onClick={vm.searchFromHome(query)}){Icon(Icons.Outlined.ArrowForward,"Pesquisar na biblioteca")}},singleLine=true,keyboardOptions=KeyboardOptions(imeAction=ImeAction.Search),keyboardActions=KeyboardActions(onSearch={if(query.isNotBlank())vm.searchFromHome(query)}),modifier=Modifier.fillMaxWidth().testTag("home-search"),shape=RoundedCornerShape(16.dp))}
+        item{OutlinedButton(onClick=onTraditions,modifier=Modifier.fillMaxWidth().testTag("open-traditions")){Text("Conhecer as tradições")}}
         item{SectionTitle("Explorar por categoria","Perspetivas diferentes, com contexto e fontes.")}
         items(state.categories.chunked(2)){row->Row(horizontalArrangement=Arrangement.spacedBy(10.dp)){
             row.forEach{category->OutlinedCard(onClick={vm.chooseCategory(category.id)},modifier=Modifier.weight(1f),shape=RoundedCornerShape(16.dp)){Column(Modifier.padding(13.dp)){Text(category.name,style=MaterialTheme.typography.titleSmall,maxLines=1,overflow=TextOverflow.Ellipsis);Text("${state.books.count{b->b.categories.any{it.id==category.id}}} referências",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}}}
             if(row.size==1)Spacer(Modifier.weight(1f))
         }}
         item{SectionTitle("Continuar a ler")}
-        item{EmptyPanel("Ainda não há leituras em curso","O leitor e a importação estão previstos para outra fase. Este catálogo contém apenas referências, sem ficheiros de livros.")}
-        item{SectionTitle("Adicionados recentemente","${state.books.size} referências bibliográficas de demonstração · disponíveis offline")}
+        if(library.files.none{it.location!=null})item{EmptyPanel("Ainda não há leituras em curso","Importa EPUB, PDF ou TXT na Biblioteca e começa a ler offline.")}
+        items(library.files.filter{it.location!=null}.sortedByDescending{it.updatedAt}.take(3),key={"reading-${it.id}"}){file->FileCard(file){onRead(file)}}
+        item{SectionTitle("Adicionados recentemente","${state.books.size} referências bibliográficas · metadados disponíveis offline")}
         items(state.books.take(6),key={it.id}){book->BookCard(book,book.id in busy,{vm.openBook(book.id)},{vm.toggleFavorite(book)})}
         item{Spacer(Modifier.height(12.dp))}
     }
 }
-@Composable fun LibraryScreen(state:SophiaState,vm:SophiaViewModel,busy:Set<String>){
+@Composable fun LibraryScreen(state:SophiaState,vm:SophiaViewModel,busy:Set<String>,library:LibrarySnapshot,onRead:(LibraryFile)->Unit,onImport:()->Unit,onCollections:()->Unit,onTraditions:()->Unit){
     LazyColumn(Modifier.fillMaxSize().testTag("library-screen"),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
-        item{SectionTitle("A tua biblioteca","Organiza referências e guarda os teus favoritos.")}
+        item{SectionTitle("A tua biblioteca","Referências, ficheiros offline e listas de leitura.")}
+        item{Button(onClick=onImport,modifier=Modifier.fillMaxWidth().testTag("import-file")){Icon(Icons.Outlined.FileOpen,null);Text("Importar EPUB, PDF ou TXT",Modifier.padding(start=8.dp))}}
+        item{Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedButton(onClick=onCollections,modifier=Modifier.weight(1f).testTag("open-collections")){Text("Coleções e listas")};OutlinedButton(onClick=onTraditions,modifier=Modifier.weight(1f)){Text("Tradições")}}}
+        if(library.files.isNotEmpty()){
+            item{SectionTitle("Ficheiros offline")}
+            items(library.files,key={"file-${it.id}"}){file->FileCard(file){onRead(file)}}
+        }
         item{SearchInput(state.filters.libraryQuery,{q->vm.setFilters{it.copy(libraryQuery=q)}},"Título ou autor","library-search")}
         item{Row(horizontalArrangement=Arrangement.spacedBy(10.dp)){SelectFilter("Tradição",state.filters.tradition,state.traditions.map{it.id to it.name},{id->vm.setFilters{it.copy(tradition=id)}},Modifier.weight(1f));SelectFilter("Categoria",state.filters.category,state.categories.map{it.id to it.name},{id->vm.setFilters{it.copy(category=id)}},Modifier.weight(1f))}}
         item{Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){FilterChip(selected=state.filters.favorites,onClick={vm.setFilters{it.copy(favorites=!it.favorites)}},label={Text("Favoritos")},leadingIcon={Icon(Icons.Outlined.BookmarkBorder,null,Modifier.size(16.dp))},modifier=Modifier.testTag("favorites-filter"));Spacer(Modifier.weight(1f));TextButton(onClick={vm.setFilters{it.copy(libraryQuery="",tradition=null,category=null,favorites=false)}}){Text("Limpar filtros")}}}
@@ -61,9 +69,9 @@ import java.util.Locale
 }
 @Composable fun ResearchScreen(state:SophiaState,vm:SophiaViewModel,busy:Set<String>){
     val active=state.filters.researchQuery.isNotBlank()||state.filters.researchTradition!=null||state.filters.author!=null
-    val authors=state.books.flatMap{it.contributors}.distinctBy{it.id}.sortedBy{it.name}.map{it.id to it.name}
+    val authors=state.books.flatMap{it.allContributors}.distinctBy{it.id}.sortedBy{it.name}.map{it.id to it.name}
     LazyColumn(Modifier.fillMaxSize().testTag("research-screen"),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)){
-        item{SectionTitle("Investigar com contexto","Pesquisa de metadados · fase 1")}
+        item{SectionTitle("Investigar com contexto","Pesquisa de metadados · biblioteca universal")}
         item{SearchInput(state.filters.researchQuery,{q->vm.setFilters{it.copy(researchQuery=q)}},"Tema, título ou autor","research-search")}
         item{SelectFilter("Autor ou colaborador",state.filters.author,authors,{id->vm.setFilters{it.copy(author=id)}})}
         item{SelectFilter("Tradição",state.filters.researchTradition,state.traditions.map{it.id to it.name},{id->vm.setFilters{it.copy(researchTradition=id)}})}
@@ -96,6 +104,7 @@ import java.util.Locale
         items(state.filteredNotes,key={it.id}){note->Card(Modifier.fillMaxWidth().testTag("note-${note.id}").clickable{vm.startNote(note)},shape=RoundedCornerShape(18.dp)){
             Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
                 Row(verticalAlignment=Alignment.CenterVertically){Text(note.title,Modifier.weight(1f),style=MaterialTheme.typography.titleMedium,maxLines=2,overflow=TextOverflow.Ellipsis);IconButton(onClick={onDelete(note)},modifier=Modifier.testTag("delete-note-${note.id}")){Icon(Icons.Outlined.DeleteOutline,"Eliminar nota: ${note.title}")}}
+                if(note.fileId!=null)Text("Nota associada a uma posição de leitura",style=MaterialTheme.typography.labelSmall)
                 if(note.body.isNotEmpty())Text(note.body,style=MaterialTheme.typography.bodyMedium,maxLines=3,overflow=TextOverflow.Ellipsis)
                 state.books.firstOrNull{it.id==note.workId}?.let{Text(it.title,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.primary)}
                 Text("Atualizada em "+DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm",Locale.forLanguageTag("pt-PT")).withZone(ZoneId.systemDefault()).format(Instant.ofEpochMilli(note.updatedAt)),style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)

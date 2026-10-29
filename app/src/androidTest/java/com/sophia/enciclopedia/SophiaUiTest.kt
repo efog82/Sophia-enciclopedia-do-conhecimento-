@@ -24,16 +24,16 @@ class SophiaUiTest {
     @Test fun completeOfflineJourney(){
         ready();nav("HOME");ui.onNodeWithTag("theme-settings").performClick();ui.onNodeWithTag("theme-LIGHT").performClick();ui.waitUntil(15000){ui.activity.model.state.value.theme==com.sophia.domain.ThemeMode.LIGHT};shot("01-inicio")
         assertEquals(PackageManager.PERMISSION_DENIED,ui.activity.checkSelfPermission(Manifest.permission.INTERNET))
-        nav("LIBRARY");ui.onNodeWithTag("library-search").performTextReplacement("kardec");ui.onNodeWithTag("library-search").performImeAction()
+        nav("LIBRARY");ui.onNodeWithTag("library-search").performTextReplacement("livro dos espiritos");ui.onNodeWithTag("library-search").performImeAction()
         awaitText("1 obra encontrada");ui.onNodeWithTag("library-count").assertTextEquals("1 obra encontrada")
         ui.onNodeWithTag("book-spirits").performScrollTo().performClick();ui.onNodeWithTag("book-details").assertExists()
         ui.onNodeWithTag("detail-favorite").performScrollTo().performClick()
         awaitText("Remover dos favoritos");ui.onNodeWithText("Remover dos favoritos").assertExists()
         ui.onNodeWithText("Fechar detalhes").performScrollTo().performClick()
-        ui.activityRule.scenario.recreate();awaitTag("library-screen");ui.onNodeWithTag("library-search").assertTextContains("kardec")
+        ui.activityRule.scenario.recreate();awaitTag("library-screen");ui.onNodeWithTag("library-search").assertTextContains("livro dos espiritos")
         ui.onNodeWithTag("favorite-spirits").assertContentDescriptionEquals("Remover dos favoritos: O Livro dos Espíritos")
         shot("02-biblioteca")
-        nav("RESEARCH");ui.onNodeWithTag("research-search").performTextInput("budismo");ui.onNodeWithTag("research-search").performImeAction();ui.waitUntil(15000){ui.activity.model.state.value.research.size==1};ui.onNodeWithTag("research-screen").performScrollToNode(hasText("1 resultados de metadados"));awaitText("1 resultados de metadados");ui.onNodeWithText("1 resultados de metadados").assertExists()
+        nav("RESEARCH");ui.onNodeWithTag("research-search").performTextInput("dhammapada");ui.onNodeWithTag("research-search").performImeAction();ui.waitUntil(15000){ui.activity.model.state.value.research.size==1};ui.onNodeWithTag("research-screen").performScrollToNode(hasText("1 resultados de metadados"));awaitText("1 resultados de metadados");ui.onNodeWithText("1 resultados de metadados").assertExists()
         ui.onNodeWithTag("research-screen").performScrollToIndex(0);ui.onAllNodesWithText("Todos")[0].performClick();ui.onNodeWithText("Allan Kardec").performScrollTo().performClick();ui.waitUntil(15000){ui.activity.model.state.value.research.isEmpty()};ui.onNodeWithTag("research-screen").performScrollToNode(hasText("Não encontrámos correspondências"));awaitText("Não encontrámos correspondências")
         ui.onNodeWithText("Limpar").performScrollTo().performClick();ui.onNodeWithTag("research-screen").performScrollToNode(hasText("Por onde queres começar?"));awaitText("Por onde queres começar?")
         nav("AI");ui.onNodeWithText("Em desenvolvimento · fase futura").assertExists();shot("03-assistente")
@@ -59,6 +59,6 @@ class SophiaUiTest {
         ui.activityRule.scenario.recreate();awaitTag("home-screen");ui.onNodeWithTag("home-screen").assertExists()
         ui.onNodeWithTag("theme-settings").performClick();ui.onNodeWithText("✓  Escuro").assertExists();ui.onNodeWithText("Fechar").performClick()
         ui.onNodeWithTag("home-screen").performScrollToNode(hasText("Ocultismo"));ui.onNodeWithText("Ocultismo").performClick();awaitText("Nenhuma obra encontrada")
-        ui.onNodeWithText("Limpar filtros").performClick();awaitText("6 obras encontradas")
+        ui.onNodeWithText("Limpar filtros").performClick();awaitText("${ui.activity.model.state.value.books.size} obras encontradas")
     }
 }

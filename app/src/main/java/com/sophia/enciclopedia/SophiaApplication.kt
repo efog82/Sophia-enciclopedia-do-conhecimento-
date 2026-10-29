@@ -10,5 +10,6 @@ class AppContainer(context:Context){
     val database by lazy{SophiaDatabase.open(context)}
     val catalog:CatalogRepository by lazy{RoomCatalogRepository(database)}
     val notes:NotesRepository by lazy{RoomNotesRepository(database)}
+    val library by lazy{LocalLibraryRepository(context.applicationContext,database)}
     val preferences:PreferencesRepository by lazy{DataStorePreferences(context)}
 }
