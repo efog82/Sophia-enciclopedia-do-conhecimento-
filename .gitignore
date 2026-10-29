@@ -7,3 +7,8 @@ local.properties
 .idea/
 *.iml
 .env
+
+.sophia-signing/
+__pycache__/
+*.pyc
+Sophia-backups/

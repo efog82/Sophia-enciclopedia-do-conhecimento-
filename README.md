@@ -28,7 +28,11 @@ Consulte [Releases](https://github.com/efog82/Sophia-enciclopedia-do-conheciment
 
 Sem contas, publicidade ou permissões de Internet/armazenamento alargado. Um fornecedor de ficheiros na nuvem pode precisar de descarregar o ficheiro durante a seleção; a leitura posterior usa a cópia local. Não há downloads automáticos de livros.
 
-**Atualização:** instalar o APK com a mesma assinatura e `versionCode=2` conserva os dados. O workflow reutiliza o cache de assinatura debug do projeto e testa instalar a v0.2.0 sobre o APK original v0.1.0. Não desinstales a versão antiga para atualizar: desinstalar ou limpar dados elimina as notas, favoritos e cópias locais. Ainda não existe backup/restauro; a cópia automática Android está desativada.
+**Importante para quem já tem a v0.1.0:** foi confirmado que o workflow antigo não conservou a chave privada no caminho de cache configurado. Por isso, **este APK não pode atualizar diretamente a instalação antiga**. Não desinstales manualmente: perderias os dados locais.
+
+Para conservar notas, favoritos e configurações, existe uma [migração assistida e validada](docs/MIGRACAO-V01.md), uma única vez através de um computador com Python e ADB/USB autorizado. A ferramenta guarda o APK instalado e um backup íntegro antes de pedir confirmação para reinstalar; valida os dados depois e repõe a versão antiga se houver falha. Novas instalações não precisam deste procedimento. A leitura/importação continua inteiramente no Android, sem computador ou servidor.
+
+A assinatura da v0.2.0 é agora explicitamente configurada num caminho da workspace, com cache correto e suporte ao segredo `SOPHIA_SIGNING_KEYSTORE_B64`. Se essa chave faltar depois da publicação, o workflow bloqueia em vez de gerar silenciosamente outra assinatura. O cache não substitui uma cópia segura permanente da chave para futuras versões.
 
 ## Formatos e limites reais
 
@@ -53,6 +57,7 @@ Metadados do EPUB são declarações do ficheiro, não verificação bibliográf
 JDK 17, Android SDK/target 35, Build Tools 35.0.0, Gradle Wrapper 8.10.2. As dependências exigem Internet na primeira compilação; a aplicação funciona offline. No Android Studio, abre a raiz e indica o SDK em `local.properties`.
 
 ```sh
+python3 -m unittest discover -s tools/tests -v
 ./gradlew :domain:test :app:assembleDebug :app:lintDebug :data:lintDebug
 ./gradlew :data:connectedDebugAndroidTest :app:connectedDebugAndroidTest
 ```

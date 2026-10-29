@@ -36,3 +36,9 @@ Foi escolhido nesta fase um leitor EPUB refluível local com capacidades explici
 Posição versionada por ficheiro: índice de recurso `spine`/bloco TXT/página PDF e fração de deslocação quando aplicável. A posição acompanha a cópia privada imutável identificada por hash; não se promete que possa ser aplicada a outra edição. Tema e tamanho de letra são preferências DataStore. Marcadores e notas ficam em Room. O excerto é texto escolhido e colado pelo utilizador, não uma citação gerada/verificada automaticamente.
 
 As relações ficheiro/edição, origem, texto sanitizado e locadores permitem preparar uma futura indexação FTS; nesta versão não há indexação integral, OCR, pesquisa semântica, RAG ou IA. O esquema/contratos poderão evoluir por migração; não se instala uma API fictícia de pesquisa.
+
+## Assinatura e migração da instalação antiga
+
+O teste de instalação sobre o APK publicado revelou `INSTALL_FAILED_UPDATE_INCOMPATIBLE`. O workflow v0.1.0 não tinha guardado a keystore: a ação de cache devolvia `Path Validation Error`, apesar de o APK ter sido assinado por uma chave gerada no processo de compilação. A chave privada não está no APK e não pode ser recuperada do certificado público. Não se tenta contornar a validação de assinaturas do Android.
+
+O identificador `com.sophia.enciclopedia` foi conservado. `tools/migrate_v01.py` suporta uma reinstalação assistida com backup validado do APK e dados originais, confirmação explícita e rollback. Só usa `run-as` de uma aplicação debug num dispositivo ADB autorizado; não usa root nem serviços externos. O caminho de assinatura no novo CI é explícito e partilhado com a workspace; após a publicação uma ausência da chave bloqueia o workflow. Ver [procedimento](MIGRACAO-V01.md).

@@ -28,14 +28,30 @@ jobs:
       - name: Preservar assinatura debug Sophia
         uses: actions/cache@v4
         with:
-          path: ~/.android/debug.keystore
-          key: sophia-debug-signing-v1
+          path: .sophia-signing/debug.keystore
+          key: sophia-debug-signing-v2-workspace
+      - name: Preparar assinatura debug num caminho partilhado com o runner
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOPHIA_KEYSTORE_B64: ${{ secrets.SOPHIA_SIGNING_KEYSTORE_B64 }}
+        run: |
+          mkdir -p .sophia-signing
+          if [ -n "$SOPHIA_KEYSTORE_B64" ]; then
+            python3 -c "import os,base64; from pathlib import Path; Path('.sophia-signing/debug.keystore').write_bytes(base64.b64decode(os.environ['SOPHIA_KEYSTORE_B64']))"
+          elif [ ! -f .sophia-signing/debug.keystore ]; then
+            if gh release view sophia-v0.2.0 >/dev/null 2>&1; then
+              echo 'Chave de assinatura ausente: repor SOPHIA_SIGNING_KEYSTORE_B64. Não será criada outra assinatura para uma versão já publicada.'
+              exit 1
+            fi
+            keytool -genkeypair -keystore .sophia-signing/debug.keystore -storepass android -keypass android -alias androiddebugkey -dname 'CN=Sophia Debug,O=Sophia,C=PT' -keyalg RSA -keysize 2048 -validity 10000
+          fi
       - name: SDK
         run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
       - name: Wrapper, testes e compilação
         run: |
+          python3 -m unittest discover -s tools/tests -v
           ./gradlew --version
-          ./gradlew :domain:test :app:assembleDebug :app:lintDebug :data:lintDebug :data:compileDebugAndroidTestKotlin :app:compileDebugAndroidTestKotlin --stacktrace
+          ./gradlew -PsophiaSigningStore=.sophia-signing/debug.keystore :domain:test :app:assembleDebug :app:lintDebug :data:lintDebug :data:compileDebugAndroidTestKotlin :app:compileDebugAndroidTestKotlin --stacktrace
       - name: Preparar APK e verificações
         run: |
           mkdir -p distribution
@@ -108,8 +124,7 @@ jobs:
             adb install baseline/Sophia-v0.1.0-debug.apk
             adb shell am start -W -n com.sophia.enciclopedia/.MainActivity
             adb shell uiautomator dump /sdcard/Download/Sophia-Test/antes-atualizacao.xml
-            adb shell am force-stop com.sophia.enciclopedia
-            adb install -r distribution/Sophia-v0.2.0-debug.apk
+            python3 tools/test_device_migration.py --apk distribution/Sophia-v0.2.0-debug.apk --backup-dir /tmp/sophia-migration-test
             adb shell am start -W -n com.sophia.enciclopedia/.MainActivity
             adb shell uiautomator dump /sdcard/Download/Sophia-Test/instalacao.xml
             adb shell screencap -p /sdcard/Download/Sophia-Test/instalacao.png
@@ -127,7 +142,7 @@ jobs:
             app/build/reports/androidTests/
             screenshots/
   release:
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/fase-2-biblioteca'
+    if: github.ref == 'refs/heads/main'
     needs: [build, android-tests]
     runs-on: ubuntu-24.04
     permissions:
@@ -142,4 +157,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create sophia-v0.2.0 distribution/* --target "$GITHUB_SHA" --prerelease --title 'Sophia v0.2.0 — Fase 2' --notes 'Biblioteca universal offline: 40 referências e 10 tradições, importação EPUB/PDF/TXT, leitor offline, marcadores, retoma, notas por posição e coleções/listas. Migração explícita Room 1 para 2, sem apagar favoritos ou notas. Assistente IA explicitamente em desenvolvimento. Sem livros integrais ou ficheiros incluídos. A release original v0.1.0 foi preservada. Limites dos formatos e resultados dos testes documentados. APK debug assinado, Android 8.0 ou superior. Consulte README e documentação de testes no repositório. Publicação condicionada a testes unitários, Android e lint.'
+          gh release create sophia-v0.2.0 distribution/* --target "$GITHUB_SHA" --prerelease --title 'Sophia v0.2.0 — Fase 2' --notes 'Biblioteca universal offline: 40 referências e 10 tradições. IMPORTANTE: a assinatura original da v0.1.0 não foi conservada; atualização direta não é possível. Para conservar dados, usar a ferramenta de migração assistida via ADB, com backup validado e restauro automático, conforme README. Nunca desinstalar manualmente sem backup. Novas instalações funcionam diretamente. Inclui importação EPUB/PDF/TXT, leitor offline, marcadores, retoma, notas por posição e coleções/listas. Migração explícita Room 1 para 2, sem apagar favoritos ou notas. Assistente IA explicitamente em desenvolvimento. Sem livros integrais ou ficheiros incluídos. A release original v0.1.0 foi preservada. Limites dos formatos e resultados dos testes documentados. APK debug assinado, Android 8.0 ou superior. Consulte README e documentação de testes no repositório. Publicação condicionada a testes unitários, Android e lint.'
