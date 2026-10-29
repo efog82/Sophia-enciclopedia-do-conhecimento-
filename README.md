@@ -22,8 +22,6 @@ O workflow publica um APK debug apenas após compilação, lint e testes no Andr
 Requisitos: JDK 17, Android SDK 35, Build Tools 35.0.0 e Gradle 8.10.2. Abra a raiz no Android Studio, indique o SDK em `local.properties` (`sdk.dir=...`) e sincronize. As dependências precisam de Internet na primeira compilação; a aplicação funciona offline.
 
 ```sh
-# Caso o wrapper ainda não tenha sido obtido do artefacto de CI:
-gradle wrapper --gradle-version 8.10.2 --distribution-type bin
 ./gradlew :domain:test :app:assembleDebug :app:lintDebug :data:lintDebug
 # Com dispositivo/emulador Android disponível:
 ./gradlew :data:connectedDebugAndroidTest :app:connectedDebugAndroidTest

@@ -34,8 +34,8 @@ jobs:
         run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
       - name: Wrapper, testes e compilação
         run: |
-          gradle wrapper --gradle-version 8.10.2 --distribution-type bin
-          ./gradlew :domain:test :app:assembleDebug :app:lintDebug :data:lintDebug --stacktrace
+          ./gradlew --version
+          ./gradlew :domain:test :app:assembleDebug :app:lintDebug :data:lintDebug :data:compileDebugAndroidTestKotlin :app:compileDebugAndroidTestKotlin --stacktrace
       - name: Preparar APK e verificações
         run: |
           mkdir -p distribution
