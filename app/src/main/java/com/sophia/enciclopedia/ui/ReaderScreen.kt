@@ -113,6 +113,9 @@ private data class LocalHtmlPage(val key:String,val html:String?=null,val error:
                     override fun shouldOverrideUrlLoading(view:WebView,request:WebResourceRequest):Boolean{
                         val url=request.url
                         if(url.scheme=="https"&&url.host=="sophia.invalid"){
+                            // Reloads from a previous resource must not navigate the ViewModel backwards.
+                            // Only a deliberate link tap may change the reading position.
+                            if(!request.hasGesture())return url.path?.removePrefix("/")!=href
                             val index=state.document.units.indexOfFirst{it.href==url.path?.removePrefix("/")}
                             if(index>=0&&index!=state.unit)vm.go(index)
                             if(index==state.unit)return false
