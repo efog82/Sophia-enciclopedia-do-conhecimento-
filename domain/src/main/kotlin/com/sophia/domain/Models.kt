@@ -21,6 +21,7 @@ data class Book(
 data class StudyNote(val id:String,val title:String,val body:String,val workId:String?,val createdAt:Long,val updatedAt:Long,val fileId:String?=null,val locatorJson:String?=null,val excerpt:String?=null)
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 interface CatalogRepository {
+    val histories:List<HistoryArticle> get()=emptyList()
     val books:Flow<List<Book>>
     val traditions:Flow<List<Tradition>>
     val categories:Flow<List<Category>>

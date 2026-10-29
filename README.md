@@ -1,16 +1,26 @@
 # Sophia — Biblioteca Universal do Conhecimento Espiritual
 
-**v0.2.0 · fase 2.** Android nativo em Kotlin/Jetpack Compose/Material 3, offline e em português de Portugal. Mantém os módulos `app`, `domain` e `data`, com MVVM, Repository, Room e DataStore.
+**v0.3.0 · história e categorias.** Android nativo em Kotlin/Jetpack Compose/Material 3, offline e em português de Portugal. Mantém os módulos `app`, `domain` e `data`, com MVVM, Repository, Room e DataStore.
 
 A v0.1.0 e a sua release permanecem disponíveis. A fase 2 foi desenvolvida na branch `feature/fase-2-biblioteca`, com integração em `main` após validação no GitHub Actions. Consulte o [relatório da fase 2](docs/TESTES-FASE2.md) para o estado efetivamente verificado.
 
+## Novidades da v0.3.0
+
+Início com botões de título/símbolo para seis áreas e onze tradições/perspetivas. Dezassete páginas de história documentada offline, com datas, lugares, figuras, fontes por secção e ligações entre temas; inclui ateísmo e agnosticismo. Não se apresenta como história exaustiva de todas as comunidades.
+
+A Biblioteca pessoal mostra apenas ficheiros importados. As referências ficam nas páginas das categorias/tradições e em Investigar, preservando as notas, favoritos e coleções associados. Não foram apagados registos pessoais nem introduzida migração destrutiva. O esquema Room permanece na versão 2.
+
+Capas declaradas de EPUB, primeira página de PDF e capas tipográficas originais como alternativa; referências com «Capa ilustrativa». Sem downloads de livros ou imagens de editoras. [Conteúdo e critérios documentais](docs/HISTORIA-v0.3.0.md) · [Validação desta versão](docs/TESTES-v0.3.0.md).
+
+**Atualização da v0.2.0:** o workflow exige a mesma assinatura publicada e testa a instalação por cima, conservando os dados. Não desinstales a aplicação. O APK v0.3.0 será ligado aqui após validação/publicação; o link abaixo continua a ser o APK v0.2.0.
+
 ## O que inclui
 
-- 40 referências bibliográficas e 10 tradições: Espiritismo, Budismo, Cristianismo, Hermetismo, Hinduísmo e tradições védicas, Judaísmo e Cabala, Islão e sufismo, Taoismo, Filosofia antiga e Confucionismo.
+- 40 referências bibliográficas, separadas da Biblioteca pessoal, e 10 tradições catalogadas: Espiritismo, Budismo, Cristianismo, Hermetismo, Hinduísmo e tradições védicas, Judaísmo e Cabala, Islão e sufismo, Taoismo, Filosofia antiga e Confucionismo.
 - Os quatro Vedas, Upanishads, Bhagavad Gita, Ramayana, Mahabharata e Yoga Sutras; referências adicionais das tradições existentes.
 - Introduções históricas neutras, conceitos fundamentais, textos/autores e ligação à investigação por tradição. Ensinamentos religiosos são apresentados no seu contexto, não como factos científicos.
 - Importação de EPUB, PDF e TXT pelo **seletor Android / Storage Access Framework**. Cópia privada para leitura offline, associação a uma obra existente ou criação de uma referência pessoal. O original não é alterado.
-- Leitor integrado, posição persistente, marcadores e retoma no Início. Tema claro/escuro, letra ajustável em EPUB/TXT e zoom em PDF.
+- Leitor integrado, posição persistente, marcadores e retoma na Biblioteca. Tema claro/escuro, letra ajustável em EPUB/TXT e zoom em PDF.
 - Notas associadas ao ficheiro e à posição; excertos opcionais copiados pelo utilizador. Abrir uma nota permite regressar à passagem.
 - Coleções e listas de leitura ordenadas; favoritos e caderno existentes preservados.
 - Pesquisa de metadados: títulos, autores/colaboradores, tradições, categorias e descrições. **Pesquisa integral/FTS e semântica ainda não implementadas.**

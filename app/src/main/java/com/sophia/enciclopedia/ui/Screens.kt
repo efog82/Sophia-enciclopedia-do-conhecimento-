@@ -26,45 +26,56 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-@Composable fun HomeScreen(state:SophiaState,vm:SophiaViewModel,busy:Set<String>,library:LibrarySnapshot,onRead:(LibraryFile)->Unit,onTraditions:()->Unit){
+@Composable fun HomeScreen(state:SophiaState,onTopic:(String?)->Unit){
     var query by rememberSaveable{mutableStateOf("")}
-    LazyColumn(Modifier.fillMaxSize().testTag("home-screen"),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(18.dp)){
+    val matches=state.histories.filter{it.matches(query)}
+    LazyColumn(Modifier.fillMaxSize().testTag("home-screen"),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)){
         item{Surface(shape=RoundedCornerShape(24.dp),color=MaterialTheme.colorScheme.primaryContainer){Column(Modifier.fillMaxWidth().padding(22.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
-            Text("ENCICLOPÉDIA DO CONHECIMENTO ESPIRITUAL",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onPrimaryContainer)
-            Text("Um lugar para estudar e compreender.",style=MaterialTheme.typography.headlineMedium,color=MaterialTheme.colorScheme.onPrimaryContainer)
-            Text("Explora obras, tradições e ideias. Constrói o teu próprio caderno de estudo.",style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onPrimaryContainer)
+            Text("SOPHIA · HISTÓRIA E CONHECIMENTO",style=MaterialTheme.typography.labelSmall)
+            Text("Conhecer a história. Compreender as ideias.",style=MaterialTheme.typography.headlineMedium)
+            Text("Pessoas, lugares, datas e tradições. Percursos históricos com fontes, disponíveis offline.")
         }}}
-        item{OutlinedTextField(query,{query=it},label={Text("Pesquisar título ou autor")},leadingIcon={Icon(Icons.Outlined.Search,null)},trailingIcon={IconButton(enabled=query.isNotBlank(),onClick={vm.searchFromHome(query)}){Icon(Icons.Outlined.ArrowForward,"Pesquisar na biblioteca")}},singleLine=true,keyboardOptions=KeyboardOptions(imeAction=ImeAction.Search),keyboardActions=KeyboardActions(onSearch={if(query.isNotBlank())vm.searchFromHome(query)}),modifier=Modifier.fillMaxWidth().testTag("home-search"),shape=RoundedCornerShape(16.dp))}
-        item{OutlinedButton(onClick=onTraditions,modifier=Modifier.fillMaxWidth().testTag("open-traditions")){Text("Conhecer as tradições")}}
-        item{SectionTitle("Explorar por categoria","Perspetivas diferentes, com contexto e fontes.")}
-        items(state.categories.chunked(2)){row->Row(horizontalArrangement=Arrangement.spacedBy(10.dp)){
-            row.forEach{category->OutlinedCard(onClick={vm.chooseCategory(category.id)},modifier=Modifier.weight(1f),shape=RoundedCornerShape(16.dp)){Column(Modifier.padding(13.dp)){Text(category.name,style=MaterialTheme.typography.titleSmall,maxLines=1,overflow=TextOverflow.Ellipsis);Text("${state.books.count{b->b.categories.any{it.id==category.id}}} referências",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}}}
-            if(row.size==1)Spacer(Modifier.weight(1f))
+        item{SearchInput(query,{query=it},"Pesquisar categorias e história","home-search")}
+        item{OutlinedButton(onClick={onTopic(null)},modifier=Modifier.fillMaxWidth().testTag("open-traditions")){Icon(Icons.Outlined.TravelExplore,null);Text("Todas as tradições e perspetivas",Modifier.padding(start=8.dp))}}
+        if(matches.isEmpty())item{EmptyPanel("Nenhum tema encontrado","Experimenta outra palavra, pessoa ou lugar.",Icons.Outlined.SearchOff)}
+        if(matches.any{it.area})item{SectionTitle("Explorar por categoria","Áreas de estudo · história, conceitos e referências")}
+        items(matches.filter{it.area}.chunked(2)){row->TopicRow(row,onTopic)}
+        if(matches.any{!it.area})item{SectionTitle("Tradições e perspetivas","Percursos históricos · das origens às transformações posteriores")}
+        items(matches.filter{!it.area}.chunked(2)){row->TopicRow(row,onTopic)}
+        item{Text("As fontes documentam a história das crenças e da não crença. Os ensinamentos religiosos são apresentados no seu contexto; datas incertas e atribuições tradicionais são identificadas.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}
+    }
+}
+@Composable private fun TopicRow(topics:List<HistoryArticle>,onTopic:(String?)->Unit){
+    Row(horizontalArrangement=Arrangement.spacedBy(10.dp)){
+        topics.forEach{topic->OutlinedCard(onClick={onTopic(topic.id)},modifier=Modifier.weight(1f).testTag("topic-${topic.id}"),shape=RoundedCornerShape(16.dp)){
+            Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
+                Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)){
+                    Text(topic.symbol,style=MaterialTheme.typography.headlineSmall,color=MaterialTheme.colorScheme.primary,modifier=Modifier.widthIn(min=28.dp))
+                    Text(topic.title,style=MaterialTheme.typography.titleSmall)
+                }
+                Text(topic.description,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Conhecer a história →",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.primary)
+            }
         }}
-        item{SectionTitle("Continuar a ler")}
-        if(library.files.none{it.location!=null})item{EmptyPanel("Ainda não há leituras em curso","Importa EPUB, PDF ou TXT na Biblioteca e começa a ler offline.")}
-        items(library.files.filter{it.location!=null}.sortedByDescending{it.updatedAt}.take(3),key={"reading-${it.id}"}){file->FileCard(file){onRead(file)}}
-        item{SectionTitle("Adicionados recentemente","${state.books.size} referências bibliográficas · metadados disponíveis offline")}
-        items(state.books.take(6),key={it.id}){book->BookCard(book,book.id in busy,{vm.openBook(book.id)},{vm.toggleFavorite(book)})}
-        item{Spacer(Modifier.height(12.dp))}
+        if(topics.size==1)Spacer(Modifier.weight(1f))
     }
 }
 @Composable fun LibraryScreen(state:SophiaState,vm:SophiaViewModel,busy:Set<String>,library:LibrarySnapshot,onRead:(LibraryFile)->Unit,onImport:()->Unit,onCollections:()->Unit,onTraditions:()->Unit){
     LazyColumn(Modifier.fillMaxSize().testTag("library-screen"),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
-        item{SectionTitle("A tua biblioteca","Referências, ficheiros offline e listas de leitura.")}
+        item{SectionTitle("A tua biblioteca","Os teus livros importados, disponíveis para leitura offline.")}
         item{Button(onClick=onImport,modifier=Modifier.fillMaxWidth().testTag("import-file")){Icon(Icons.Outlined.FileOpen,null);Text("Importar EPUB, PDF ou TXT",Modifier.padding(start=8.dp))}}
         item{Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){OutlinedButton(onClick=onCollections,modifier=Modifier.weight(1f).testTag("open-collections")){Text("Coleções e listas")};OutlinedButton(onClick=onTraditions,modifier=Modifier.weight(1f)){Text("Tradições")}}}
         item{SearchInput(state.filters.libraryQuery,{q->vm.setFilters{it.copy(libraryQuery=q)}},"Título ou autor","library-search")}
         item{Row(horizontalArrangement=Arrangement.spacedBy(10.dp)){SelectFilter("Tradição",state.filters.tradition,state.traditions.map{it.id to it.name},{id->vm.setFilters{it.copy(tradition=id)}},Modifier.weight(1f));SelectFilter("Categoria",state.filters.category,state.categories.map{it.id to it.name},{id->vm.setFilters{it.copy(category=id)}},Modifier.weight(1f))}}
         item{Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){FilterChip(selected=state.filters.favorites,onClick={vm.setFilters{it.copy(favorites=!it.favorites)}},label={Text("Favoritos")},leadingIcon={Icon(Icons.Outlined.BookmarkBorder,null,Modifier.size(16.dp))},modifier=Modifier.testTag("favorites-filter"));Spacer(Modifier.weight(1f));TextButton(onClick={vm.setFilters{it.copy(libraryQuery="",tradition=null,category=null,favorites=false)}}){Text("Limpar filtros")}}}
-        item{Text("${state.library.size} ${if(state.library.size==1)"obra encontrada" else "obras encontradas"}",style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.testTag("library-count"))}
         val filteredFiles=library.files.filter{file->state.library.any{it.id==file.workId}}
-        if(filteredFiles.isNotEmpty()){
-            item{SectionTitle("Ficheiros offline")}
-            items(filteredFiles,key={"file-${it.id}"}){file->FileCard(file){onRead(file)}}
-        }
-        if(state.library.isEmpty())item{EmptyPanel(if(state.filters.favorites)"Ainda não há favoritos neste filtro" else "Nenhuma obra encontrada","Experimenta outro título, autor ou tradição, ou limpa os filtros.",Icons.Outlined.SearchOff)}
-        items(state.library,key={it.id}){book->BookCard(book,book.id in busy,{vm.openBook(book.id)},{vm.toggleFavorite(book)})}
+        item{Text("${filteredFiles.size} ${if(filteredFiles.size==1)"ficheiro encontrado" else "ficheiros encontrados"}",style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.testTag("library-count"))}
+        if(library.files.isEmpty())item{EmptyPanel("A tua biblioteca está pronta para receber livros","Importa um EPUB, PDF ou TXT. As referências históricas estão nas categorias do Início e em Investigar; não são livros disponíveis para leitura.")}
+        else if(filteredFiles.isEmpty())item{EmptyPanel("Nenhum livro importado neste filtro","Experimenta outro título, autor ou tradição, ou limpa os filtros.",Icons.Outlined.SearchOff)}
+        items(filteredFiles,key={"file-${it.id}"}){file->Column(verticalArrangement=Arrangement.spacedBy(4.dp)){
+            FileCard(file){onRead(file)}
+            TextButton(onClick={vm.openBook(file.workId)},modifier=Modifier.testTag("file-details-${file.id}")){Text("Detalhes, favoritos e notas")}
+        }}
         item{Spacer(Modifier.height(16.dp))}
     }
 }

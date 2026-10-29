@@ -22,6 +22,7 @@ object LocationCodec {
 }
 class LocalLibraryRepository(private val context:Context,private val db:SophiaDatabase):LibraryRepository {
     private val mutex=Mutex()
+    private val coverMutex=Mutex()
     private val directory get()=File(context.filesDir,"books").apply{mkdirs()}
     override val snapshot=combine(db.library().files(),db.library().collections(),db.catalog().observeWorks()){files,collections,works->
         val titles=works.associate{it.work.id to it.work.title}
@@ -38,6 +39,42 @@ class LocalLibraryRepository(private val context:Context,private val db:SophiaDa
             renderer.openPage(index).use{page->val scale=minOf(1600.0/page.width,2400.0/page.height);val bitmap=android.graphics.Bitmap.createBitmap((page.width*scale).toInt().coerceAtLeast(1),(page.height*scale).toInt().coerceAtLeast(1),android.graphics.Bitmap.Config.ARGB_8888);bitmap.eraseColor(android.graphics.Color.WHITE);page.render(bitmap,null,null,PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);bitmap}
         }}
     }
+    /** Derived thumbnails only: no Room schema change and no remote image requests. */
+    suspend fun cover(id:String):android.graphics.Bitmap?=withContext(Dispatchers.IO){coverMutex.withLock{
+        val info=file(id)
+        val cache=File(context.cacheDir,"book-covers").apply{mkdirs()}
+        val image=File(cache,"${info.sha256}-v1.png")
+        if(image.isFile)return@withLock android.graphics.BitmapFactory.decodeFile(image.path)
+        val missing=File(cache,"${info.sha256}-v1.none")
+        if(missing.exists())return@withLock null
+        try{
+            val bitmap=when(info.mimeType){
+                "application/pdf"->pdfPage(id,0).let{page->
+                    val scale=minOf(320f/page.width,480f/page.height,1f)
+                    val small=android.graphics.Bitmap.createScaledBitmap(page,(page.width*scale).toInt().coerceAtLeast(1),(page.height*scale).toInt().coerceAtLeast(1),true)
+                    if(small!==page)page.recycle()
+                    small
+                }
+                "application/epub+zip"->{
+                    val local=localFile(id)
+                    val path=BookDocuments.epub(local).coverHref
+                    val bytes=path?.let{BookDocuments.resource(local,it)}
+                    bytes?.let{
+                        val bounds=android.graphics.BitmapFactory.Options().apply{inJustDecodeBounds=true}
+                        android.graphics.BitmapFactory.decodeByteArray(it,0,it.size,bounds)
+                        require(bounds.outWidth>0&&bounds.outHeight>0&&bounds.outWidth.toLong()*bounds.outHeight<=40000000){"Imagem de capa incompatível."}
+                        var sample=1
+                        while(bounds.outWidth/sample>640||bounds.outHeight/sample>960)sample*=2
+                        android.graphics.BitmapFactory.decodeByteArray(it,0,it.size,android.graphics.BitmapFactory.Options().apply{inSampleSize=sample})
+                    }
+                }
+                else->null
+            }
+            if(bitmap==null)missing.writeText("")
+            else runCatching{image.outputStream().use{bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,it)}}
+            bitmap
+        }catch(e:CancellationException){throw e}catch(_:Exception){null}
+    }}
     override suspend fun importFile(request:ImportRequest):ImportResult=mutex.withLock{withContext(Dispatchers.IO){
         require(request.authorised){"Confirme que tem autorização para utilizar o ficheiro."}
         val source=Uri.parse(request.sourceUri);require(source.scheme=="content"){"Escolha o ficheiro através do seletor Android."}

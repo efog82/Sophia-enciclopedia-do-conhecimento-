@@ -1,7 +1,7 @@
 name: Sophia Android
 on:
   push:
-    branches: [main, feature/fase-2-biblioteca]
+    branches: [main, feature/fase-2-biblioteca, feature/v0.3.0-historia]
   workflow_dispatch:
 permissions:
   contents: read
@@ -52,14 +52,17 @@ jobs:
           python3 -m unittest discover -s tools/tests -v
           ./gradlew --version
           ./gradlew -PsophiaSigningStore=.sophia-signing/debug.keystore :domain:test :app:assembleDebug :app:lintDebug :data:lintDebug :data:compileDebugAndroidTestKotlin :app:compileDebugAndroidTestKotlin --stacktrace
+      - name: Confirmar assinatura compatível com a v0.2.0 publicada
+        run: |
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs app/build/outputs/apk/debug/app-debug.apk > /tmp/sophia-cert.txt
+          python3 -c "from pathlib import Path; expected='9788c0e73c9653cdf3e3dbbb1ae362bd740408b47f32c5290da40f5fa5de8b1e'; assert 'Signer #1 certificate SHA-256 digest: '+expected in Path('/tmp/sophia-cert.txt').read_text(), 'Assinatura incompatível com v0.2.0: publicação bloqueada'"
       - name: Preparar APK e verificações
         run: |
           mkdir -p distribution
-          cp app/build/outputs/apk/debug/app-debug.apk distribution/Sophia-v0.2.0-debug.apk
-          python3 -c "from zipfile import ZipFile; files=['tools/migrate_v01.py','tools/migrar-v01.bat','docs/MIGRACAO-V01.md']; z=ZipFile('distribution/Sophia-v0.2.0-migracao.zip','w'); [z.write(p,p) for p in files]; z.close()"
+          cp app/build/outputs/apk/debug/app-debug.apk distribution/Sophia-v0.3.0-debug.apk
           cd distribution
-          sha256sum Sophia-v0.2.0-debug.apk Sophia-v0.2.0-migracao.zip > SHA256SUMS.txt
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs Sophia-v0.2.0-debug.apk > assinatura.txt
+          sha256sum Sophia-v0.3.0-debug.apk > SHA256SUMS.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs Sophia-v0.3.0-debug.apk > assinatura.txt
       - uses: actions/upload-artifact@v4
         with:
           name: sophia-apk
@@ -105,7 +108,9 @@ jobs:
       - name: Obter APK original v0.1.0 para testar atualização
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release download sophia-v0.1.0 --pattern 'Sophia-v0.1.0-debug.apk' --dir baseline
+        run: |
+          gh release download sophia-v0.1.0 --pattern 'Sophia-v0.1.0-debug.apk' --dir baseline
+          gh release download sophia-v0.2.0 --pattern 'Sophia-v0.2.0-debug.apk' --dir baseline
       - name: Ativar KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -125,7 +130,8 @@ jobs:
             adb install baseline/Sophia-v0.1.0-debug.apk
             adb shell am start -W -n com.sophia.enciclopedia/.MainActivity
             adb shell uiautomator dump /sdcard/Download/Sophia-Test/antes-atualizacao.xml
-            python3 tools/test_device_migration.py --apk distribution/Sophia-v0.2.0-debug.apk --backup-dir /tmp/sophia-migration-test
+            python3 tools/test_device_migration.py --apk baseline/Sophia-v0.2.0-debug.apk --backup-dir /tmp/sophia-migration-test
+            python3 tools/test_update_v02.py --apk distribution/Sophia-v0.3.0-debug.apk
             adb shell am start -W -n com.sophia.enciclopedia/.MainActivity
             adb shell uiautomator dump /sdcard/Download/Sophia-Test/instalacao.xml
             adb shell screencap -p /sdcard/Download/Sophia-Test/instalacao.png
@@ -158,4 +164,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create sophia-v0.2.0 distribution/* --target "$GITHUB_SHA" --prerelease --title 'Sophia v0.2.0 — Fase 2' --notes 'Biblioteca universal offline: 40 referências e 10 tradições. IMPORTANTE: a assinatura original da v0.1.0 não foi conservada; atualização direta não é possível. Para conservar dados, usar a ferramenta de migração assistida via ADB, com backup validado e restauro automático, conforme README. Nunca desinstalar manualmente sem backup. Novas instalações funcionam diretamente. Inclui importação EPUB/PDF/TXT, leitor offline, marcadores, retoma, notas por posição e coleções/listas. Migração explícita Room 1 para 2, sem apagar favoritos ou notas. Assistente IA explicitamente em desenvolvimento. Sem livros integrais ou ficheiros incluídos. A release original v0.1.0 foi preservada. Limites dos formatos e resultados dos testes documentados. APK debug assinado, Android 8.0 ou superior. Consulte README e documentação de testes no repositório. Publicação condicionada a testes unitários, Android e lint.'
+          if ! gh release view sophia-v0.3.0 >/dev/null 2>&1; then
+            gh release create sophia-v0.3.0 distribution/* --target "$GITHUB_SHA" --prerelease --title 'Sophia v0.3.0 — História e categorias' --notes-file docs/RELEASE-v0.3.0.md
+          fi

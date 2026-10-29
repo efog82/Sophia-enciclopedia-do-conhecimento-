@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.*
 
 enum class Section(val label:String,val title:String){HOME("Início","Sophia"),LIBRARY("Biblioteca","Biblioteca"),RESEARCH("Investigar","Investigar"),AI("IA","Assistente IA"),NOTES("Caderno","Caderno de Estudos")}
 data class Filters(val libraryQuery:String="",val tradition:String?=null,val category:String?=null,val favorites:Boolean=false,val researchQuery:String="",val researchTradition:String?=null,val author:String?=null,val notesQuery:String="")
-data class SophiaState(val loading:Boolean=true,val error:String?=null,val books:List<Book> = emptyList(),val notes:List<StudyNote> = emptyList(),val traditions:List<Tradition> = emptyList(),val categories:List<Category> = emptyList(),val theme:ThemeMode=ThemeMode.SYSTEM,val filters:Filters=Filters()) {
+data class SophiaState(val loading:Boolean=true,val error:String?=null,val books:List<Book> = emptyList(),val notes:List<StudyNote> = emptyList(),val traditions:List<Tradition> = emptyList(),val categories:List<Category> = emptyList(),val theme:ThemeMode=ThemeMode.SYSTEM,val filters:Filters=Filters(),val histories:List<HistoryArticle> = emptyList()) {
     val library get()=CatalogSearch.filter(books,filters.libraryQuery,filters.tradition,categoryId=filters.category,favoritesOnly=filters.favorites)
     val research get()=CatalogSearch.filter(books,filters.researchQuery,filters.researchTradition,filters.author)
     val filteredNotes get()=notes.filter{CatalogSearch.normalized(it.title+" "+it.body).contains(CatalogSearch.normalized(filters.notesQuery))}
@@ -23,7 +23,7 @@ class SophiaViewModel(private val catalog:CatalogRepository,private val notesRep
     private val content:Flow<SophiaState> = retry.flatMapLatest {flow {
         emit(SophiaState())
         catalog.initialize()
-        emitAll(combine(catalog.books,notesRepo.notes,catalog.traditions,catalog.categories,preferences.theme){books,notes,traditions,categories,theme->SophiaState(false,books=books,notes=notes,traditions=traditions,categories=categories,theme=theme)})
+        emitAll(combine(catalog.books,notesRepo.notes,catalog.traditions,catalog.categories,preferences.theme){books,notes,traditions,categories,theme->SophiaState(false,books=books,notes=notes,traditions=traditions,categories=categories,theme=theme,histories=catalog.histories)})
     }.catch{e->if(e is CancellationException)throw e;emit(SophiaState(loading=false,error="Não foi possível abrir os dados locais. Pode tentar novamente. Nenhum restauro destrutivo foi efetuado."))}}
     val state=combine(content,filters){data,f->data.copy(filters=f)}.stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),SophiaState())
     val section=saved.getStateFlow("section",Section.HOME.name)
