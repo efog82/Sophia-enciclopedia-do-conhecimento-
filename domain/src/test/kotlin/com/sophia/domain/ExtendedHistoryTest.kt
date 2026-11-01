@@ -4,15 +4,15 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ExtendedHistoryTest {
-    @Test fun pilotOnlyAddsTwoExplicitTopics() {
-        assertEquals(setOf("spiritism", "judaism"), ExtendedHistory.pilot.keys)
+    @Test fun supplementCoversAllSeventeenTopics() {
+        assertEquals(17, ExtendedHistory.pilot.keys.size)
     }
 
     @Test fun allPilotSectionsHaveTextAndUniqueHeadings() {
         ExtendedHistory.pilot.values.forEach { sections ->
             assertTrue(sections.isNotEmpty())
             assertEquals(sections.size, sections.map { it.heading }.distinct().size)
-            assertTrue(sections.all { it.heading.isNotBlank() && it.narrative.length > 100 })
+            assertTrue(sections.all { it.heading.isNotBlank() && it.narrative.length > 100 && it.sourceNumbers.isNotEmpty() && it.sourceNumbers.all { n -> n > 0 } })
         }
     }
 
