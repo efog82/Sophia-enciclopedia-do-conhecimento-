@@ -19,7 +19,7 @@ class RoomCatalogRepository(private val db:SophiaDatabase):CatalogRepository {
         val replacement=ExtendedHistory.pilot[article.id]
         if(replacement==null) article else article.copy(
             sections=replacement.map { section ->
-                HistorySection(section.heading, section.narrative, listOf(1))
+                HistorySection(section.heading, section.narrative, section.sourceNumbers)
             }
         )
     }
