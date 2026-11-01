@@ -37,7 +37,9 @@ jobs:
           test -f .sophia-signing/debug.keystore || { echo 'Original signing key unavailable'; exit 1; }
       - name: Install Android SDK
         run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
-      - name: Compile preview APK (without tests)
+      - name: Verify historical article tests
+        run: ./gradlew :domain:test --stacktrace
+      - name: Compile preview APK
         run: ./gradlew -PsophiaSigningStore=.sophia-signing/debug.keystore :app:assembleDebug --stacktrace
       - name: Verify matching signature
         run: |
