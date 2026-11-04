@@ -4,11 +4,15 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -26,11 +30,12 @@ import com.sophia.enciclopedia.SophiaState
                 item{Row{TextButton(onClick=onClose){Text("Fechar")};if(article!=null)TextButton(onClick={selected=null}){Text("Todos os temas")}}}
                 if(article==null){
                     item{SectionTitle("Tradições e perspetivas","História documentada · crença e não crença")}
-                    items(state.histories.filter{!it.area},key={it.id}){topic->OutlinedCard(onClick={selected=topic.id},modifier=Modifier.fillMaxWidth().testTag("tradition-${topic.id}")){
-                        Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){Text("${topic.symbol}  ${topic.title}",style=MaterialTheme.typography.titleMedium);Text(topic.description)}
+                    items(state.histories.filter{!it.area},key={it.id}){topic->Card(onClick={selected=topic.id},modifier=Modifier.fillMaxWidth().testTag("tradition-${topic.id}"),shape=RoundedCornerShape(18.dp)){
+                        Row(verticalAlignment=Alignment.CenterVertically){TopicArtwork(topic.id,Modifier.width(92.dp).height(72.dp),topic.title);Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(4.dp)){Text(topic.title,style=MaterialTheme.typography.titleMedium);Text(topic.description,style=MaterialTheme.typography.bodyMedium,maxLines=2,overflow=TextOverflow.Ellipsis)}}
                     }}
                 }else{
-                    item{Text("${article.symbol}  ${article.title}",style=MaterialTheme.typography.headlineMedium);Text(article.description,Modifier.padding(top=8.dp))}
+                    item{Box(Modifier.clip(RoundedCornerShape(24.dp))){ArtworkBanner(article.id,article.title,height=200.dp)}}
+                    item{Text(article.description,style=MaterialTheme.typography.bodyLarge)}
                     item{Text("História e contexto",style=MaterialTheme.typography.titleLarge);Text("Texto editorial Sophia · fontes numeradas por secção · revisão de 29/10/2026",style=MaterialTheme.typography.labelSmall)}
                     items(article.sections){section->Column(verticalArrangement=Arrangement.spacedBy(10.dp)){
                         Text(section.title,style=MaterialTheme.typography.titleMedium)
