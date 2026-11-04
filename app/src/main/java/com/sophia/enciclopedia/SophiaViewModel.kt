@@ -7,7 +7,7 @@ import com.sophia.domain.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 
-enum class Section(val label:String,val title:String){HOME("Início","Sophia"),LIBRARY("Biblioteca","Biblioteca"),RESEARCH("Investigar","Investigar"),AI("IA","Assistente IA"),NOTES("Caderno","Caderno de Estudos")}
+enum class Section(val label:String,val title:String){HOME("Início","Sophia"),LIBRARY("Biblioteca","Biblioteca"),REFERENCES("Referências","Referências"),RESEARCH("Investigar","Investigar"),AI("IA","Assistente IA"),NOTES("Caderno","Caderno de Estudos")}
 data class Filters(val libraryQuery:String="",val tradition:String?=null,val category:String?=null,val favorites:Boolean=false,val researchQuery:String="",val researchTradition:String?=null,val author:String?=null,val notesQuery:String="")
 data class SophiaState(val loading:Boolean=true,val error:String?=null,val books:List<Book> = emptyList(),val notes:List<StudyNote> = emptyList(),val traditions:List<Tradition> = emptyList(),val categories:List<Category> = emptyList(),val theme:ThemeMode=ThemeMode.SYSTEM,val filters:Filters=Filters(),val histories:List<HistoryArticle> = emptyList()) {
     val library get()=CatalogSearch.filter(books,filters.libraryQuery,filters.tradition,categoryId=filters.category,favoritesOnly=filters.favorites)
