@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
@@ -30,11 +31,7 @@ import java.util.Locale
     var query by rememberSaveable{mutableStateOf("")}
     val matches=state.histories.filter{it.matches(query)}
     LazyColumn(Modifier.fillMaxSize().testTag("home-screen"),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)){
-        item{Surface(shape=RoundedCornerShape(24.dp),color=MaterialTheme.colorScheme.primaryContainer){Column(Modifier.fillMaxWidth().padding(22.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
-            Text("SOPHIA · HISTÓRIA E CONHECIMENTO",style=MaterialTheme.typography.labelSmall)
-            Text("Conhecer a história. Compreender as ideias.",style=MaterialTheme.typography.headlineMedium)
-            Text("Pessoas, lugares, datas e tradições. Percursos históricos com fontes, disponíveis offline.")
-        }}}
+        item{Box(Modifier.clip(RoundedCornerShape(28.dp))){ArtworkBanner("religions","Conhecer a história. Compreender as ideias.","Pessoas, lugares, datas e tradições. Percursos históricos com fontes, disponíveis offline.",height=228.dp,label="SOPHIA · HISTÓRIA E CONHECIMENTO")}}
         item{SearchInput(query,{query=it},"Pesquisar categorias e história","home-search")}
         item{OutlinedButton(onClick={onTopic(null)},modifier=Modifier.fillMaxWidth().testTag("open-traditions")){Icon(Icons.Outlined.TravelExplore,null);Text("Todas as tradições e perspetivas",Modifier.padding(start=8.dp))}}
         if(matches.isEmpty())item{EmptyPanel("Nenhum tema encontrado","Experimenta outra palavra, pessoa ou lugar.",Icons.Outlined.SearchOff)}
@@ -46,18 +43,31 @@ import java.util.Locale
     }
 }
 @Composable private fun TopicRow(topics:List<HistoryArticle>,onTopic:(String?)->Unit){
-    Row(horizontalArrangement=Arrangement.spacedBy(10.dp)){
-        topics.forEach{topic->OutlinedCard(onClick={onTopic(topic.id)},modifier=Modifier.weight(1f).testTag("topic-${topic.id}"),shape=RoundedCornerShape(16.dp)){
-            Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
-                Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)){
-                    Text(topic.symbol,style=MaterialTheme.typography.headlineSmall,color=MaterialTheme.colorScheme.primary,modifier=Modifier.widthIn(min=28.dp))
-                    Text(topic.title,style=MaterialTheme.typography.titleSmall)
+    Row(horizontalArrangement=Arrangement.spacedBy(12.dp)){
+        topics.forEach{topic->Card(onClick={onTopic(topic.id)},modifier=Modifier.weight(1f).testTag("topic-${topic.id}"),shape=RoundedCornerShape(20.dp)){
+            Column{
+                TopicArtwork(topic.id,Modifier.fillMaxWidth().height(104.dp),topic.title)
+                Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){
+                    Text(topic.title,style=MaterialTheme.typography.titleSmall,maxLines=2,overflow=TextOverflow.Ellipsis)
+                    Text(topic.description,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant,maxLines=3,overflow=TextOverflow.Ellipsis)
+                    Text("Conhecer a história →",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.primary)
                 }
-                Text(topic.description,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("Conhecer a história →",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.primary)
             }
         }}
         if(topics.size==1)Spacer(Modifier.weight(1f))
+    }
+}
+@Composable fun ReferencesScreen(state:SophiaState,vm:SophiaViewModel,busy:Set<String>){
+    var query by rememberSaveable{mutableStateOf("")}
+    var tradition by rememberSaveable{mutableStateOf<String?>(null)}
+    val filtered=state.books.filter{book->(tradition==null||book.traditions.any{it.id==tradition})&&(query.isBlank()||CatalogSearch.normalized(book.title+" "+book.contributorLabel+" "+book.description+" "+book.traditions.joinToString(" "){it.name}).contains(CatalogSearch.normalized(query)))}
+    LazyColumn(Modifier.fillMaxSize().testTag("references-screen"),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
+        item{SectionTitle("Referências bibliográficas","O catálogo completo da Sophia · referências para estudo; não inclui os textos integrais.")}
+        item{SearchInput(query,{query=it},"Título, autor ou tema","references-search")}
+        item{SelectFilter("Tradição",tradition,state.traditions.map{it.id to it.name},{tradition=it})}
+        item{Text("${filtered.size} ${if(filtered.size==1)"referência" else "referências"}",style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)}
+        if(filtered.isEmpty())item{EmptyPanel("Nenhuma referência neste filtro","Experimenta outro termo ou limpa o filtro de tradição.",Icons.Outlined.SearchOff)}
+        items(filtered,key={it.id}){book->BookCard(book,book.id in busy,{vm.openBook(book.id)},{vm.toggleFavorite(book)})}
     }
 }
 @Composable fun LibraryScreen(state:SophiaState,vm:SophiaViewModel,busy:Set<String>,library:LibrarySnapshot,onRead:(LibraryFile)->Unit,onImport:()->Unit,onCollections:()->Unit,onTraditions:()->Unit){
