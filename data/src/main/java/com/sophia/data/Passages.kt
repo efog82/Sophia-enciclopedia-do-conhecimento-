@@ -24,8 +24,9 @@ class PassageRepository(private val context:Context) {
         if(!file.exists()||file.length()==0L){
             context.assets.open(asset).use{input->file.outputStream().use{out->input.copyTo(out)}}
         }
-        val units=runCatching{BookDocuments.epubUnitTexts(file)}.getOrDefault(emptyList()).filter{it.first!="Edição e licença"}
-        val result=PassagePicker.fromUnitTexts(units).map{(unitTitle,text)->Passage(book.id,book.title,unitTitle,text)}
+        val units=runCatching{BookDocuments.epubUnitTexts(file)}.getOrDefault(emptyList())
+            .mapIndexed{index,(title,text)->Triple(index,title,text)}.filter{it.second!="Edição e licença"}
+        val result=PassagePicker.fromIndexedUnitTexts(units).map{(unitIndex,unitTitle,text)->Passage(book.id,book.title,unitTitle,text,unitIndex)}
         cache[book.id]=result
         result
     }
