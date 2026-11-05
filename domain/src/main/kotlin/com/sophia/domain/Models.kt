@@ -40,7 +40,7 @@ interface NotesRepository {
     suspend fun delete(id:String)
 }
 data class PassageSettings(val enabled:Boolean=false,val automatic:Boolean=true,val hour:Int=9,val minute:Int=0)
-data class Passage(val bookId:String,val bookTitle:String,val unitTitle:String,val text:String)
+data class Passage(val bookId:String,val bookTitle:String,val unitTitle:String,val text:String,val unitIndex:Int=0)
 interface PreferencesRepository { val theme:Flow<ThemeMode>; suspend fun setTheme(mode:ThemeMode);val readerFontSize:Flow<Int>;suspend fun setReaderFontSize(size:Int);val passageSettings:Flow<PassageSettings>;suspend fun setPassageSettings(settings:PassageSettings) }
 object CatalogSearch {
     fun normalized(text:String):String=Normalizer.normalize(text,Normalizer.Form.NFD).replace(Regex("\\p{M}+"),"").lowercase(Locale.ROOT).trim()
