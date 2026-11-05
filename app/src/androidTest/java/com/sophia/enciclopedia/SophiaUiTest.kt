@@ -31,7 +31,7 @@ class SophiaUiTest {
         val fileCount=ui.activity.libraryModel.state.value.data.files.size
         ui.onNodeWithTag("library-count").assertTextEquals("$fileCount "+if(fileCount==1)"ficheiro encontrado" else "ficheiros encontrados")
         shot("02-biblioteca-pessoal")
-        nav("RESEARCH");ui.onNodeWithTag("research-search").performTextReplacement("livro dos espiritos")
+        nav("RESEARCH");awaitTag("research-search");ui.onNodeWithTag("research-search").performTextReplacement("livro dos espiritos")
         awaitTag("basebook-kardec-espiritos")
         ui.onNodeWithTag("research-screen").performScrollToNode(hasTestTag("basebook-kardec-espiritos"));ui.onNodeWithTag("basebook-kardec-espiritos").performClick()
         ui.onNodeWithTag("install-basebook-kardec-espiritos").performScrollTo().performClick()
@@ -40,7 +40,7 @@ class SophiaUiTest {
         ui.onAllNodesWithText("Fechar").onLast().performClick();awaitText("«O Livro dos Espíritos» adicionado à tua biblioteca. Boa leitura!",false)
         awaitTag("read-basebook-kardec-espiritos");ui.onNodeWithTag("read-basebook-kardec-espiritos").performScrollTo().performClick();awaitTag("reader-screen");ui.onNodeWithTag("close-reader").performClick();awaitTag("reader-screen",false)
         ui.onNodeWithText("Fechar").performClick()
-        ui.activityRule.scenario.recreate();awaitTag("research-screen");ui.onNodeWithTag("research-search").assertTextContains("livro dos espiritos")
+        ui.activityRule.scenario.recreate();awaitTag("research-screen");awaitTag("research-search");ui.onNodeWithTag("research-search").assertTextContains("livro dos espiritos")
         ui.waitUntil(30000){try{ui.onNodeWithTag("research-screen").performScrollToNode(hasText("Nos textos integrais"));ui.onAllNodesWithText("Nos textos integrais").fetchSemanticsNodes().isNotEmpty()}catch(e:AssertionError){false}}
         ui.onNodeWithTag("research-search").performTextReplacement("zxqwkj");awaitText("Não encontrámos correspondências")
         ui.onNodeWithText("Limpar").performScrollTo().performClick();awaitText("Por onde queres começar?")
