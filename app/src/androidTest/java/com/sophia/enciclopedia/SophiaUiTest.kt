@@ -41,7 +41,7 @@ class SophiaUiTest {
         awaitTag("read-basebook-kardec-espiritos");ui.onNodeWithTag("read-basebook-kardec-espiritos").performScrollTo().performClick();awaitTag("reader-screen");ui.onNodeWithTag("close-reader").performClick();awaitTag("reader-screen",false)
         ui.onNodeWithText("Fechar").performClick()
         ui.activityRule.scenario.recreate();awaitTag("research-screen");ui.onNodeWithTag("research-search").assertTextContains("livro dos espiritos")
-        ui.waitUntil(30000){ui.onAllNodesWithText("Nos textos integrais").fetchSemanticsNodes().isNotEmpty()}
+        ui.waitUntil(30000){try{ui.onNodeWithTag("research-screen").performScrollToNode(hasText("Nos textos integrais"));ui.onAllNodesWithText("Nos textos integrais").fetchSemanticsNodes().isNotEmpty()}catch(e:AssertionError){false}}
         ui.onNodeWithTag("research-search").performTextReplacement("zxqwkj");awaitText("Não encontrámos correspondências")
         ui.onNodeWithText("Limpar").performScrollTo().performClick();awaitText("Por onde queres começar?")
         nav("AI");ui.onNodeWithText("Em desenvolvimento · fase futura").assertExists();shot("03-assistente")
