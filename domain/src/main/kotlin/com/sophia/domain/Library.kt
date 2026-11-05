@@ -12,9 +12,12 @@ data class StudyCollection(val id:String,val name:String,val readingList:Boolean
 data class LibrarySnapshot(val files:List<LibraryFile> = emptyList(),val collections:List<StudyCollection> = emptyList())
 data class ImportRequest(val sourceUri:String,val workId:String?=null,val title:String="",val authorised:Boolean=false)
 data class ImportResult(val fileId:String,val workId:String,val duplicate:Boolean)
+data class BundledSearchHit(val fileId:String,val workId:String,val bookTitle:String,val unit:Int,val unitTitle:String,val snippet:String)
 interface LibraryRepository {
     val snapshot:Flow<LibrarySnapshot>
     suspend fun importFile(request:ImportRequest):ImportResult
+    suspend fun installBundledBook(book:BaseBook):ImportResult
+    suspend fun searchBundled(query:String):List<BundledSearchHit>
     suspend fun file(id:String):LibraryFile
     suspend fun savePosition(fileId:String,location:ReadingLocation,progressPermille:Int)
     fun bookmarks(fileId:String):Flow<List<Bookmark>>
