@@ -1,6 +1,12 @@
 package com.sophia.enciclopedia.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.ClickableText
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -15,6 +21,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.sophia.domain.BaseBook
+import com.sophia.domain.BaseBookRights
 import com.sophia.domain.Book
 
 @Composable fun EmptyPanel(title:String,text:String,icon:ImageVector=Icons.Outlined.AutoStories){
@@ -38,6 +46,44 @@ import com.sophia.domain.Book
                 Text(if(book.editions.sumOf{it.fileCount}>0)"${book.editions.sumOf{it.fileCount}} ficheiros offline" else "Referência · sem ficheiro",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if(showFavorite)IconButton(enabled=!busy,onClick=onFavorite,modifier=Modifier.testTag("favorite-${book.id}").semantics{stateDescription=if(book.favorite)"Nos favoritos" else "Não favorito"}){Icon(if(book.favorite)Icons.Outlined.Bookmark else Icons.Outlined.BookmarkBorder,if(book.favorite)"Remover dos favoritos: ${book.title}" else "Adicionar aos favoritos: ${book.title}",tint=if(book.favorite)MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant)}
+        }
+    }
+}
+private val WIKI_LINK=Regex("\\[\\[([^|\\]]+)\\|([^\\]]+)\\]\\]")
+/** Texto com ligações internas [[id|rótulo]]: ids de livros-base abrem o livro; ids de artigos navegam para o tema. Ids desconhecidos aparecem como texto simples. */
+@Composable fun LinkedText(text:String,style:TextStyle,bookIds:Set<String>,articleIds:Set<String>,onBook:(String)->Unit,onArticle:(String)->Unit){
+    val linkColor=MaterialTheme.colorScheme.primary
+    val annotated=remember(text,bookIds,articleIds){buildAnnotatedString{
+        var last=0
+        for(m in WIKI_LINK.findAll(text)){
+            append(text.substring(last,m.range.first))
+            val id=m.groupValues[1].trim();val label=m.groupValues[2]
+            val kind=when{id in bookIds->"book";id in articleIds->"article";else->null}
+            if(kind==null)append(label) else {pushStringAnnotation(kind,id);withStyle(SpanStyle(color=linkColor,textDecoration=TextDecoration.Underline)){append(label)};pop()}
+            last=m.range.last+1
+        }
+        append(text.substring(last))
+    }}
+    ClickableText(text=annotated,style=style,onClick={offset->
+        annotated.getStringAnnotations("book",offset,offset).firstOrNull()?.let{onBook(it.item)}
+        annotated.getStringAnnotations("article",offset,offset).firstOrNull()?.let{onArticle(it.item)}
+    })
+}
+fun BaseBook.statusLine():String = when {
+    fullTextAsset!=null->"Texto integral incluído · lê e pesquisa na app"
+    rights==BaseBookRights.PUBLIC_DOMAIN->"Domínio público · texto integral a integrar"
+    else->"Resumo Sophia · texto protegido por direitos"
+}
+@Composable fun BaseBookCard(book:BaseBook,traditionName:String,onOpen:()->Unit){
+    Card(Modifier.fillMaxWidth().testTag("basebook-${book.id}").clickable(onClick=onOpen),shape=RoundedCornerShape(20.dp),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface)){
+        Row(Modifier.padding(14.dp),verticalAlignment=Alignment.CenterVertically){
+            BookCover(book.title,book.traditionId,modifier=Modifier.width(72.dp).height(104.dp))
+            Column(Modifier.weight(1f).padding(start=12.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){
+                Text(book.title,style=MaterialTheme.typography.titleSmall,maxLines=2,overflow=TextOverflow.Ellipsis)
+                Text(book.author+(book.year?.let{" · $it"}?:""),style=MaterialTheme.typography.bodySmall,maxLines=2,overflow=TextOverflow.Ellipsis,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(traditionName,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.secondary)
+                Text(book.statusLine(),style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }
