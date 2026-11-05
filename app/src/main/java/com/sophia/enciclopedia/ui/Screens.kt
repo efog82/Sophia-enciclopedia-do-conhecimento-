@@ -51,7 +51,7 @@ import java.util.Locale
     Row(horizontalArrangement=Arrangement.spacedBy(12.dp)){
         topics.forEach{topic->Card(onClick={onTopic(topic.id)},modifier=Modifier.weight(1f).testTag("topic-${topic.id}"),shape=RoundedCornerShape(20.dp)){
             Column{
-                TopicArtwork(topic.id,Modifier.fillMaxWidth().height(104.dp),topic.title)
+                Box(Modifier.fillMaxWidth().height(104.dp)){TopicArtwork(topic.id,Modifier.fillMaxSize(),topic.title);Surface(shape=RoundedCornerShape(50),color=MaterialTheme.colorScheme.primary,modifier=Modifier.align(Alignment.BottomStart).padding(8.dp)){Text(topic.symbol,style=MaterialTheme.typography.labelLarge,color=MaterialTheme.colorScheme.onPrimary,modifier=Modifier.padding(horizontal=9.dp,vertical=3.dp))}}
                 Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){
                     Text(topic.title,style=MaterialTheme.typography.titleSmall,maxLines=2,overflow=TextOverflow.Ellipsis)
                     Text(topic.description,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant,maxLines=3,overflow=TextOverflow.Ellipsis)
@@ -64,13 +64,13 @@ import java.util.Locale
 }
 @Composable fun PassageCard(passage:Passage?,onShuffle:()->Unit,settings:PassageSettings,onSettings:(PassageSettings)->Unit){
     var settingsOpen by rememberSaveable{mutableStateOf(false)}
-    Card(Modifier.fillMaxWidth().testTag("passage-card"),shape=RoundedCornerShape(24.dp),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface)){
+    Card(Modifier.fillMaxWidth().testTag("passage-card"),shape=RoundedCornerShape(24.dp),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.primaryContainer,contentColor=MaterialTheme.colorScheme.onPrimaryContainer)){
         Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
-            Row(verticalAlignment=Alignment.CenterVertically){Icon(Icons.Outlined.AutoStories,null,tint=MaterialTheme.colorScheme.secondary);Text("Passagem para refletir",Modifier.padding(start=8.dp),style=MaterialTheme.typography.titleMedium)}
-            if(passage==null)Text("A preparar a passagem de hoje…",style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(verticalAlignment=Alignment.CenterVertically){Surface(shape=RoundedCornerShape(50),color=MaterialTheme.colorScheme.primary){Icon(Icons.Outlined.AutoStories,null,tint=MaterialTheme.colorScheme.onPrimary,modifier=Modifier.padding(7.dp).size(18.dp))};Text("Passagem para refletir",Modifier.padding(start=10.dp),style=MaterialTheme.typography.titleMedium)}
+            if(passage==null)Text("A preparar a passagem de hoje…",style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha=.75f))
             else{
                 Text(passage.text,style=MaterialTheme.typography.bodyLarge)
-                Text("— ${passage.bookTitle} · ${passage.unitTitle}",style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.secondary)
+                Text("— ${passage.bookTitle} · ${passage.unitTitle}",style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.primary)
             }
             Row{
                 TextButton(onClick=onShuffle,modifier=Modifier.testTag("passage-shuffle")){Icon(Icons.Outlined.Refresh,null,Modifier.size(18.dp));Text("Outra passagem",Modifier.padding(start=6.dp))}
