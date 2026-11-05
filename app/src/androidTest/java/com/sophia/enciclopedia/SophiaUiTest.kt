@@ -31,17 +31,17 @@ class SophiaUiTest {
         val fileCount=ui.activity.libraryModel.state.value.data.files.size
         ui.onNodeWithTag("library-count").assertTextEquals("$fileCount "+if(fileCount==1)"ficheiro encontrado" else "ficheiros encontrados")
         shot("02-biblioteca-pessoal")
-        nav("RESEARCH");ui.onNodeWithTag("research-search").performTextReplacement("livro dos espiritos");ui.onNodeWithTag("research-search").performImeAction()
-        ui.waitUntil(15000){ui.activity.model.state.value.research.size==1}
-        ui.onNodeWithTag("research-screen").performScrollToNode(hasTestTag("book-spirits"));ui.onNodeWithTag("book-spirits").performClick();ui.onNodeWithTag("book-details").assertExists()
-        ui.onNodeWithTag("detail-favorite").performScrollTo().performClick()
-        awaitText("Remover dos favoritos");ui.onNodeWithText("Remover dos favoritos").assertExists()
-        ui.onNodeWithText("Fechar detalhes").performScrollTo().performClick()
-        ui.activityRule.scenario.recreate();awaitTag("research-screen");ui.onNodeWithTag("research-screen").performScrollToIndex(0);ui.onNodeWithTag("research-search").assertTextContains("livro dos espiritos")
-        ui.onNodeWithTag("research-screen").performScrollToNode(hasTestTag("favorite-spirits"));ui.onNodeWithTag("favorite-spirits").assertContentDescriptionEquals("Remover dos favoritos: O Livro dos Espíritos")
-        nav("RESEARCH");ui.onNodeWithTag("research-screen").performScrollToIndex(0);ui.onNodeWithTag("research-search").performTextReplacement("dhammapada");ui.onNodeWithTag("research-search").performImeAction();ui.waitUntil(15000){ui.activity.model.state.value.research.size==1};ui.onNodeWithTag("research-screen").performScrollToNode(hasText("1 resultado de metadados"));awaitText("1 resultado de metadados");ui.onNodeWithText("1 resultado de metadados").assertExists()
-        ui.onNodeWithTag("research-screen").performScrollToIndex(0);ui.onAllNodesWithText("Todos")[0].performClick();ui.onNodeWithText("Allan Kardec").performScrollTo().performClick();ui.waitUntil(15000){ui.activity.model.state.value.research.isEmpty()};ui.onNodeWithTag("research-screen").performScrollToNode(hasText("Não encontrámos correspondências"));awaitText("Não encontrámos correspondências")
-        ui.onNodeWithText("Limpar").performScrollTo().performClick();ui.onNodeWithTag("research-screen").performScrollToNode(hasText("Por onde queres começar?"));awaitText("Por onde queres começar?")
+        nav("RESEARCH");ui.onNodeWithTag("research-search").performTextReplacement("livro dos espiritos")
+        awaitTag("basebook-kardec-espiritos")
+        ui.onNodeWithTag("research-screen").performScrollToNode(hasTestTag("basebook-kardec-espiritos"));ui.onNodeWithTag("basebook-kardec-espiritos").performClick()
+        ui.onNodeWithTag("install-basebook-kardec-espiritos").performScrollTo().performClick()
+        ui.waitUntil(25000){ui.activity.libraryModel.state.value.data.files.any{it.workId=="spirits"}}
+        awaitTag("read-basebook-kardec-espiritos");ui.onNodeWithTag("read-basebook-kardec-espiritos").performScrollTo().performClick();awaitTag("reader-screen");ui.onNodeWithTag("close-reader").performClick();awaitTag("reader-screen",false)
+        ui.onNodeWithText("Fechar").performClick()
+        ui.activityRule.scenario.recreate();awaitTag("research-screen");ui.onNodeWithTag("research-search").assertTextContains("livro dos espiritos")
+        ui.waitUntil(30000){ui.onAllNodesWithText("Nos textos integrais").fetchSemanticsNodes().isNotEmpty()}
+        ui.onNodeWithTag("research-search").performTextReplacement("zxqwkj");awaitText("Não encontrámos correspondências")
+        ui.onNodeWithText("Limpar").performScrollTo().performClick();awaitText("Por onde queres começar?")
         nav("AI");ui.onNodeWithText("Em desenvolvimento · fase futura").assertExists();shot("03-assistente")
         nav("NOTES");ui.onNodeWithTag("new-note").performClick()
         ui.onNodeWithTag("save-note").performScrollTo().performClick();awaitTag("note-error")
