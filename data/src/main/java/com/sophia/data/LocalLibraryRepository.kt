@@ -107,6 +107,62 @@ class LocalLibraryRepository(private val context:Context,private val db:SophiaDa
     override fun bookmarks(fileId:String)=db.library().bookmarks(fileId).map{rows->rows.map{Bookmark(it.id,it.fileId,it.label,LocationCodec.decode(it.locatorJson),it.createdAt)}}
     override suspend fun addBookmark(fileId:String,label:String,location:ReadingLocation){db.library().addBookmark(BookmarkEntity(UUID.randomUUID().toString(),fileId,LocationCodec.encode(location),label.take(200),System.currentTimeMillis()))}
     override suspend fun deleteBookmark(id:String)=db.library().deleteBookmark(id)
+override suspend fun installBundledBook(book:BaseBook):ImportResult=mutex.withLock{withContext(Dispatchers.IO){
+        val asset=book.fullTextAsset?:error("Este livro não tem texto integral incluído.")
+        val workId=book.workId
+        db.library().files().first().firstOrNull{it.edition.workId==workId&&it.file.rightsStatus=="PUBLIC_DOMAIN"}?.let{return@withContext ImportResult(it.file.id,workId,true)}
+        val id=UUID.randomUUID().toString();val temp=File(directory,"$id.part");var target:File?=null;var committed=false
+        try{
+            val digest=MessageDigest.getInstance("SHA-256");var size=0L
+            context.assets.open(asset).use{input->temp.outputStream().use{out->val buffer=ByteArray(65536);while(true){val n=input.read(buffer);if(n<0)break;size+=n;digest.update(buffer,0,n);out.write(buffer,0,n)}}}
+            require(size>0){"O ficheiro incluído está vazio."}
+            BookDocuments.epub(temp)
+            target=File(directory,"$id.epub");require(temp.renameTo(target)){"Não foi possível guardar a cópia local."}
+            val hash=digest.digest().joinToString(""){"%02x".format(it)}
+            val editionId=UUID.randomUUID().toString();val now=System.currentTimeMillis()
+            db.withTransaction{
+                if(db.library().workTitle(workId)==null){
+                    db.catalog().insertWorks(listOf(WorkEntity(workId,book.title,book.summary.take(300),originalYear=book.year,sourceUrl="https://www.luzespirita.org.br/",sourceLabel="Portal Luz Espírita · tradução de Ery Lopes",metadataNote="Texto em domínio público; tradução portuguesa de Ery Lopes, de reprodução livre. Edição digital incluída na Sophia sem alterações de conteúdo.",addedAt=now,demo=false)))
+                    db.catalog().insertWorkTraditions(listOf(WorkTraditionEntity(workId,book.traditionId)))
+                }
+                db.catalog().insertPeople(listOf(PersonEntity("ery-lopes","Ery Lopes")))
+                db.catalog().insertEdition(EditionEntity(editionId,workId,label="Texto integral · tradução Ery Lopes (Portal Luz Espírita)",publisher="Portal Luz Espírita",language="pt",rightsStatus="PUBLIC_DOMAIN"))
+                db.catalog().insertEditionCredit(EditionContributorEntity(editionId,"ery-lopes","TRANSLATOR"))
+                db.catalog().insertFile(BookFileEntity(id,editionId,Uri.fromFile(target).toString(),"application/epub+zip",hash,"PUBLIC_DOMAIN",sizeBytes=size,displayName="${book.title}.epub",addedAt=now))
+            }
+            committed=true;ImportResult(id,workId,false)
+        }finally{temp.delete();if(!committed)target?.delete()}
+    }}
+    private val searchCache=mutableMapOf<String,List<Pair<String,String>>>()
+    private fun foldText(value:String):String {
+        val map=mapOf('á' to 'a','à' to 'a','â' to 'a','ã' to 'a','ä' to 'a','é' to 'e','è' to 'e','ê' to 'e','ë' to 'e','í' to 'i','ì' to 'i','î' to 'i','ó' to 'o','ò' to 'o','ô' to 'o','õ' to 'o','ö' to 'o','ú' to 'u','ù' to 'u','û' to 'u','ü' to 'u','ç' to 'c','ñ' to 'n')
+        return buildString(value.length){for(c in value.lowercase())append(map[c]?:c)}
+    }
+    override suspend fun searchBundled(query:String):List<BundledSearchHit> {
+        return withContext(Dispatchers.IO){
+        val terms=foldText(query).split(Regex("\\s+")).filter{it.length>=2}
+        if(terms.isEmpty())return@withContext emptyList<BundledSearchHit>()
+        val hits=mutableListOf<BundledSearchHit>()
+        val rows=db.library().files().first().filter{it.file.rightsStatus=="PUBLIC_DOMAIN"&&it.file.mimeType=="application/epub+zip"}
+        for(row in rows){
+            if(hits.size>=40)break
+            val units=searchCache.getOrPut(row.file.id){runCatching{BookDocuments.epubUnitTexts(localFile(row.file.id))}.getOrDefault(emptyList())}
+            val title=db.library().workTitle(row.edition.workId)?:"Livro"
+            units.forEachIndexed{index,(unitTitle,text)->
+                if(hits.size<40){
+                    val folded=foldText(text)
+                    val pos=folded.indexOf(terms.first())
+                    if(pos>=0&&terms.all{folded.contains(it)}){
+                        val start=(pos-70).coerceAtLeast(0);val end=(pos+140).coerceAtMost(text.length)
+                        val snippet=(if(start>0)"…" else "")+text.substring(start,end).replace(Regex("\\s+")," ").trim()+(if(end<text.length)"…" else "")
+                        hits+=BundledSearchHit(row.file.id,row.edition.workId,title,index,unitTitle,snippet)
+                    }
+                }
+            }
+        }
+        hits
+        }
+    }
     override suspend fun createCollection(name:String,readingList:Boolean){val n=name.trim();require(n.isNotEmpty()&&n.length<=120){"Escreva um nome de 1 a 120 caracteres."};db.library().addCollection(StudyCollectionEntity(UUID.randomUUID().toString(),n,readingList,System.currentTimeMillis()))}
     override suspend fun deleteCollection(id:String)=db.library().deleteCollection(id)
     override suspend fun setInCollection(collectionId:String,workId:String,included:Boolean)=db.withTransaction{if(!included)db.library().removeEntry(collectionId,workId)else{val entries=db.library().entries(collectionId);if(entries.none{it.workId==workId})db.library().setEntry(CollectionWorkEntity(collectionId,workId,(entries.maxOfOrNull{it.position}?:-1)+1))}}
