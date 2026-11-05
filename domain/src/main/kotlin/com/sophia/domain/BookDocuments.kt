@@ -68,6 +68,11 @@ object BookDocuments {
             ?.let{runCatching{normalizedPath(opfPath,it.attr("href"))}.getOrNull()}
         return BookDocument(FileMetadata(field("title"),authors,field("language"),field("publisher"),field("date")?.take(4)?.toIntOrNull()?.takeIf{it in 1..9999}),units,true,coverHref)
     }
+    /** Título e texto simples de cada unidade de leitura de um EPUB, para pesquisa integral local. */
+    fun epubUnitTexts(file:File):List<Pair<String,String>> {
+        val doc=epub(file)
+        return doc.units.map{unit->unit.title to try{Jsoup.parse(resource(file,unit.href).toString(Charsets.UTF_8)).body().text()}catch(e:Exception){""}}
+    }
     fun text(file:File):BookDocument {
         require(file.length()<=16L*1024*1024){"TXT demasiado grande para este leitor (máximo 16 MiB)."}
         val bytes=file.readBytes()
