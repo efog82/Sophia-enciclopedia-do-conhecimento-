@@ -19,11 +19,14 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sophia.data.LocationCodec
+import com.sophia.enciclopedia.PassageNotifications
+import kotlinx.coroutines.launch
 import com.sophia.domain.*
 import com.sophia.enciclopedia.*
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Composable fun SophiaApp(vm:SophiaViewModel,libraryVm:LibraryViewModel){
+@Composable fun SophiaApp(vm:SophiaViewModel,libraryVm:LibraryViewModel,passagesRepo:com.sophia.data.PassageRepository){
     val state by vm.state.collectAsStateWithLifecycle()
     val libraryState by libraryVm.state.collectAsStateWithLifecycle()
     val importing by libraryVm.importing.collectAsStateWithLifecycle()
@@ -40,6 +43,12 @@ import com.sophia.enciclopedia.*
     val pick:(String?)->Unit={id->importWork=id;picker.launch(arrayOf("application/epub+zip","application/pdf","text/plain","application/octet-stream"))}
     LaunchedEffect(importResult){importResult?.let{importUri=null;vm.openBook(it.workId);libraryVm.clearResult()}}
     val selected by vm.section.collectAsStateWithLifecycle()
+    val baseBookFocus by vm.baseBookFocus.collectAsStateWithLifecycle()
+    val passageSettings by vm.passageSettings.collectAsStateWithLifecycle()
+    var dailyPassage by remember{mutableStateOf<com.sophia.domain.Passage?>(null)}
+    val appScope=rememberCoroutineScope()
+    LaunchedEffect(passageSettings){PassageNotifications.sync(context,passageSettings)}
+    LaunchedEffect(Unit){if(dailyPassage==null)dailyPassage=runCatching{passagesRepo.dailyPassage()}.getOrNull()}
     val work by vm.selectedWork.collectAsStateWithLifecycle()
     val editor by vm.editor.collectAsStateWithLifecycle()
     val saving by vm.saving.collectAsStateWithLifecycle()
@@ -60,11 +69,11 @@ import com.sophia.enciclopedia.*
             when{
                 state.loading->Column(Modifier.padding(24.dp)){CircularProgressIndicator();Text("A abrir a biblioteca…",Modifier.padding(top=16.dp))}
                 state.error!=null->Column(Modifier.padding(24.dp)){EmptyPanel("Dados locais indisponíveis",state.error!!);Button(onClick=vm::retry){Text("Tentar novamente")}}
-                else->when(section){Section.HOME->HomeScreen(state){id->historyTopic=id;traditionsOpen=true};Section.LIBRARY->LibraryScreen(state,vm,busy,libraryState.data,read,{pick(null)},{collectionsOpen=true},{historyTopic=null;traditionsOpen=true});Section.REFERENCES->ReferencesScreen(state,vm,busy);Section.RESEARCH->ResearchScreen(state,vm,busy);Section.AI->AssistantScreen();Section.NOTES->NotesScreen(state,vm){deleteId=it.id}}
+                else->when(section){Section.HOME->HomeScreen(state,dailyPassage,{appScope.launch{dailyPassage=runCatching{passagesRepo.randomPassage()}.getOrNull()}},passageSettings,{vm.setPassageSettings(it)}){id->historyTopic=id;traditionsOpen=true};Section.LIBRARY->LibraryScreen(state,vm,busy,libraryState.data,read,{pick(null)},{collectionsOpen=true},{historyTopic=null;traditionsOpen=true});Section.REFERENCES->ReferencesScreen(state,libraryState.data,importing,{libraryVm.installBundled(it)},read,baseBookFocus,{vm.clearBaseBookFocus()});Section.RESEARCH->ResearchScreen(state,libraryState.data,libraryVm,importing,{id->historyTopic=id;traditionsOpen=true},{hit->context.startActivity(ReaderActivity.intent(context,hit.fileId,LocationCodec.encode(ReadingLocation(hit.unit,0.0))))},read);Section.AI->AssistantScreen();Section.NOTES->NotesScreen(state,vm){deleteId=it.id}}
             }
         }}
         if(themeOpen)AlertDialog(onDismissRequest={themeOpen=false},title={Text("Aspeto da aplicação")},text={Column{ThemeMode.entries.forEach{mode->TextButton(onClick={vm.theme(mode);themeOpen=false},modifier=Modifier.fillMaxWidth().testTag("theme-${mode.name}")){Text((if(mode==state.theme)"✓  " else "")+when(mode){ThemeMode.SYSTEM->"Seguir o sistema";ThemeMode.LIGHT->"Claro";ThemeMode.DARK->"Escuro"})}}}},confirmButton={TextButton(onClick={themeOpen=false}){Text("Fechar")}})
-        if(traditionsOpen)TraditionsDialog(state,historyTopic,{traditionsOpen=false},{id->traditionsOpen=false;vm.openBook(id)},{id->traditionsOpen=false;vm.setFilters{it.copy(researchQuery="",researchTradition=id,author=null)};vm.navigate(Section.RESEARCH)})
+        if(traditionsOpen)TraditionsDialog(state,historyTopic,{traditionsOpen=false},{id->traditionsOpen=false;vm.openBook(id)},{id->traditionsOpen=false;vm.setFilters{it.copy(researchQuery="",researchTradition=id,author=null)};vm.navigate(Section.RESEARCH)},{id->traditionsOpen=false;vm.focusBaseBook(id)})
         if(collectionsOpen)CollectionsDialog(state,libraryState.data,libraryVm,{collectionsOpen=false},{id->collectionsOpen=false;vm.openBook(id)})
         state.books.firstOrNull{it.id==work}?.let{book->BookDetails(book,book.id in busy,{vm.closeBook()},{vm.toggleFavorite(book)},{vm.startNote(workId=book.id)},libraryState.data,libraryVm,{pick(book.id)},read)}
         importUri?.let{uri->ImportDialog(uri,importWork,state.books,importing,importMessage,{importUri=null},libraryVm::importFile)}
