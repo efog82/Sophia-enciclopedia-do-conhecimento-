@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.*
 
 enum class Section(val label:String,val title:String){HOME("Início","Sophia"),LIBRARY("Biblioteca","Biblioteca"),REFERENCES("Referências","Referências"),RESEARCH("Investigar","Investigar"),AI("IA","Assistente IA"),NOTES("Caderno","Caderno de Estudos")}
 data class Filters(val libraryQuery:String="",val tradition:String?=null,val category:String?=null,val favorites:Boolean=false,val researchQuery:String="",val researchTradition:String?=null,val author:String?=null,val notesQuery:String="")
-data class SophiaState(val loading:Boolean=true,val error:String?=null,val books:List<Book> = emptyList(),val notes:List<StudyNote> = emptyList(),val traditions:List<Tradition> = emptyList(),val categories:List<Category> = emptyList(),val theme:ThemeMode=ThemeMode.SYSTEM,val filters:Filters=Filters(),val histories:List<HistoryArticle> = emptyList()) {
+data class SophiaState(val loading:Boolean=true,val error:String?=null,val books:List<Book> = emptyList(),val notes:List<StudyNote> = emptyList(),val traditions:List<Tradition> = emptyList(),val categories:List<Category> = emptyList(),val theme:ThemeMode=ThemeMode.SYSTEM,val filters:Filters=Filters(),val histories:List<HistoryArticle> = emptyList(),val baseBooks:List<BaseBook> = emptyList()) {
     val library get()=CatalogSearch.filter(books,filters.libraryQuery,filters.tradition,categoryId=filters.category,favoritesOnly=filters.favorites)
     val research get()=CatalogSearch.filter(books,filters.researchQuery,filters.researchTradition,filters.author)
     val filteredNotes get()=notes.filter{CatalogSearch.normalized(it.title+" "+it.body).contains(CatalogSearch.normalized(filters.notesQuery))}
@@ -23,10 +23,15 @@ class SophiaViewModel(private val catalog:CatalogRepository,private val notesRep
     private val content:Flow<SophiaState> = retry.flatMapLatest {flow {
         emit(SophiaState())
         catalog.initialize()
-        emitAll(combine(catalog.books,notesRepo.notes,catalog.traditions,catalog.categories,preferences.theme){books,notes,traditions,categories,theme->SophiaState(false,books=books,notes=notes,traditions=traditions,categories=categories,theme=theme,histories=catalog.histories)})
+        emitAll(combine(catalog.books,notesRepo.notes,catalog.traditions,catalog.categories,preferences.theme){books,notes,traditions,categories,theme->SophiaState(false,books=books,notes=notes,traditions=traditions,categories=categories,theme=theme,histories=catalog.histories,baseBooks=catalog.baseBooks)})
     }.catch{e->if(e is CancellationException)throw e;emit(SophiaState(loading=false,error="Não foi possível abrir os dados locais. Pode tentar novamente. Nenhum restauro destrutivo foi efetuado."))}}
     val state=combine(content,filters){data,f->data.copy(filters=f)}.stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),SophiaState())
     val section=saved.getStateFlow("section",Section.HOME.name)
+    val passageSettings=preferences.passageSettings.stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),PassageSettings())
+    fun setPassageSettings(settings:PassageSettings){viewModelScope.launch{preferences.setPassageSettings(settings)}}
+    val baseBookFocus=saved.getStateFlow<String?>("baseBookFocus",null)
+    fun focusBaseBook(id:String){saved["baseBookFocus"]=id;navigate(Section.REFERENCES)}
+    fun clearBaseBookFocus(){saved["baseBookFocus"]=null}
     val selectedWork=saved.getStateFlow<String?>("work",null)
     val editor=combine(saved.getStateFlow("editorOpen",false),saved.getStateFlow<String?>("noteId",null),saved.getStateFlow("noteTitle",""),saved.getStateFlow("noteBody",""),saved.getStateFlow<String?>("noteWork",null)){open,id,title,body,work->NoteEditorState(open,id,title,body,work,saved["noteFile"],saved["noteLocator"],saved["noteExcerpt"])}.stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000),NoteEditorState())
     private val _saving=MutableStateFlow(false);val saving=_saving.asStateFlow()
