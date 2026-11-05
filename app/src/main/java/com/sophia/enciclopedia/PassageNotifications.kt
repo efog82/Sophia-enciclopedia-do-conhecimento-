@@ -69,12 +69,18 @@ object PassageNotifications {
     fun post(context:Context,passage:Passage){
         createChannel(context)
         if(!NotificationManagerCompat.from(context).areNotificationsEnabled()) return
-        val open=PendingIntent.getActivity(context,0,Intent(context,MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        // Tanto tocar na notificação como no botão "Ler texto completo" abre a app já no
+        // capítulo da passagem (MainActivity entrega o destino ao SophiaApp via PassageDeepLink).
+        val target=Intent(context,MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            .putExtra(PassageDeepLink.EXTRA_BOOK,passage.bookId).putExtra(PassageDeepLink.EXTRA_UNIT,passage.unitIndex)
+        val open=PendingIntent.getActivity(context,0,target,PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val readFull=PendingIntent.getActivity(context,4203,target,PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val notification=NotificationCompat.Builder(context,CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_passage)
             .setContentTitle("Passagem para refletir · ${passage.bookTitle}")
             .setContentText(passage.text)
             .setStyle(NotificationCompat.BigTextStyle().bigText("${passage.text}\n\n— ${passage.bookTitle} · ${passage.unitTitle}"))
+            .addAction(android.R.drawable.ic_menu_view,"Ler texto completo",readFull)
             .setContentIntent(open).setAutoCancel(true).build()
         try{NotificationManagerCompat.from(context).notify(NOTIFICATION_ID,notification)}catch(e:SecurityException){/* permissão revogada entretanto */}
     }
