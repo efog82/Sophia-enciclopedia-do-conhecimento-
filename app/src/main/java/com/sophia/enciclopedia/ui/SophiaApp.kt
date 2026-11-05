@@ -74,7 +74,7 @@ import com.sophia.enciclopedia.*
     LaunchedEffect(feedback){feedback?.let{snackbar.showSnackbar(it);vm.clearFeedback()}}
     SophiaTheme(state.theme){
         BackHandler(enabled=section!=Section.HOME && !editor.open && work==null){vm.navigate(Section.HOME)}
-        Scaffold(snackbarHost={SnackbarHost(snackbar)},topBar={TopAppBar(title={Text(section.title)},actions={IconButton(onClick={themeOpen=true},modifier=Modifier.testTag("theme-settings")){Icon(Icons.Outlined.Palette,"Escolher tema")}})},bottomBar={NavigationBar{
+        Scaffold(snackbarHost={SnackbarHost(snackbar)},topBar={TopAppBar(title={Text(section.title)},colors=TopAppBarDefaults.topAppBarColors(containerColor=MaterialTheme.colorScheme.primary,titleContentColor=MaterialTheme.colorScheme.onPrimary,actionIconContentColor=MaterialTheme.colorScheme.onPrimary),actions={IconButton(onClick={themeOpen=true},modifier=Modifier.testTag("theme-settings")){Icon(Icons.Outlined.Palette,"Escolher tema")}})},bottomBar={NavigationBar{
             Section.entries.forEach{s->NavigationBarItem(selected=s==section,onClick={vm.navigate(s)},icon={Icon(when(s){Section.HOME->Icons.Outlined.Home;Section.LIBRARY->Icons.Outlined.AutoStories;Section.REFERENCES->Icons.Outlined.MenuBook;Section.RESEARCH->Icons.Outlined.TravelExplore;Section.AI->Icons.Outlined.Psychology;Section.NOTES->Icons.Outlined.EditNote},null)},label={Text(s.label,fontSize=10.sp,maxLines=1)},modifier=Modifier.testTag("nav-${s.name}"))}
         }}){padding->Box(Modifier.padding(padding).fillMaxSize()){
             when{
