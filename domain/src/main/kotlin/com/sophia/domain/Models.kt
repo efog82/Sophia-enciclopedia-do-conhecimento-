@@ -18,10 +18,16 @@ data class Book(
     val allContributors:List<Contributor> get()=(contributors+editions.flatMap{it.contributors}).distinctBy{it.id to it.role}
     val contributorLabel:String get()=allContributors.joinToString(" · "){if(it.role==ContributorRole.AUTHOR)it.name else "${it.name} (${it.role.label.lowercase(Locale.forLanguageTag("pt-PT"))})"}.ifBlank{"Autoria coletiva ou não individualizada"}
 }
+enum class BaseBookRights { PUBLIC_DOMAIN, PROTECTED }
+data class BaseBook(val id:String,val traditionId:String,val title:String,val author:String,val year:Int?,val rights:BaseBookRights,val rightsNote:String,val summary:String,val composition:String,val fullTextAsset:String?=null) {
+    /** Obra da biblioteca a que o texto integral fica associado («spirits» é a obra semeada de O Livro dos Espíritos). */
+    val workId:String get()=if(id=="kardec-espiritos")"spirits" else id
+}
 data class StudyNote(val id:String,val title:String,val body:String,val workId:String?,val createdAt:Long,val updatedAt:Long,val fileId:String?=null,val locatorJson:String?=null,val excerpt:String?=null)
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 interface CatalogRepository {
     val histories:List<HistoryArticle> get()=emptyList()
+    val baseBooks:List<BaseBook> get()=emptyList()
     val books:Flow<List<Book>>
     val traditions:Flow<List<Tradition>>
     val categories:Flow<List<Category>>
@@ -33,7 +39,9 @@ interface NotesRepository {
     suspend fun save(id:String?,title:String,body:String,workId:String?,fileId:String?=null,locatorJson:String?=null,excerpt:String?=null):String
     suspend fun delete(id:String)
 }
-interface PreferencesRepository { val theme:Flow<ThemeMode>; suspend fun setTheme(mode:ThemeMode);val readerFontSize:Flow<Int>;suspend fun setReaderFontSize(size:Int) }
+data class PassageSettings(val enabled:Boolean=false,val automatic:Boolean=true,val hour:Int=9,val minute:Int=0)
+data class Passage(val bookId:String,val bookTitle:String,val unitTitle:String,val text:String)
+interface PreferencesRepository { val theme:Flow<ThemeMode>; suspend fun setTheme(mode:ThemeMode);val readerFontSize:Flow<Int>;suspend fun setReaderFontSize(size:Int);val passageSettings:Flow<PassageSettings>;suspend fun setPassageSettings(settings:PassageSettings) }
 object CatalogSearch {
     fun normalized(text:String):String=Normalizer.normalize(text,Normalizer.Form.NFD).replace(Regex("\\p{M}+"),"").lowercase(Locale.ROOT).trim()
     fun filter(books:List<Book>,query:String="",traditionId:String?=null,authorId:String?=null,categoryId:String?=null,favoritesOnly:Boolean=false):List<Book>{
