@@ -42,6 +42,17 @@ import com.sophia.enciclopedia.*
     val read:(LibraryFile)->Unit={context.startActivity(ReaderActivity.intent(context,it.id))}
     val pick:(String?)->Unit={id->importWork=id;picker.launch(arrayOf("application/epub+zip","application/pdf","text/plain","application/octet-stream"))}
     LaunchedEffect(importResult){importResult?.let{importUri=null;vm.openBook(it.workId);libraryVm.clearResult()}}
+    // Notificação da passagem: abrir o leitor no capítulo da passagem (instala o livro-base se ainda não estiver na biblioteca).
+    val passageLink by PassageDeepLink.pending.collectAsStateWithLifecycle()
+    var passageInstallAsked by remember{mutableStateOf<String?>(null)}
+    LaunchedEffect(passageLink,libraryState.data.files){
+        val link=passageLink?:return@LaunchedEffect
+        val book=com.sophia.data.BaseBooks.all.firstOrNull{it.id==link.first}
+        if(book==null){PassageDeepLink.clear();return@LaunchedEffect}
+        val file=libraryState.data.files.firstOrNull{it.workId==book.workId}
+        if(file!=null){context.startActivity(ReaderActivity.intent(context,file.id,LocationCodec.encode(ReadingLocation(link.second,0.0))));PassageDeepLink.clear();passageInstallAsked=null}
+        else if(passageInstallAsked!=book.id){passageInstallAsked=book.id;libraryVm.installBundled(book)}
+    }
     val selected by vm.section.collectAsStateWithLifecycle()
     val baseBookFocus by vm.baseBookFocus.collectAsStateWithLifecycle()
     val passageSettings by vm.passageSettings.collectAsStateWithLifecycle()
