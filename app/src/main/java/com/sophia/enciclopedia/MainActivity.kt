@@ -15,5 +15,7 @@ class MainActivity:ComponentActivity(){
         SophiaViewModel(container.catalog,container.notes,container.preferences,createSavedStateHandle())
     }}}
     val libraryModel:LibraryViewModel by viewModels{viewModelFactory{initializer{LibraryViewModel((application as SophiaApplication).container.library)}}}
-    override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState);setContent{SophiaApp(model,libraryModel,(application as SophiaApplication).container.passages)}}
+    override fun onCreate(savedInstanceState:Bundle?){super.onCreate(savedInstanceState)
+        PassageDeepLink.offer(intent?.getStringExtra(PassageDeepLink.EXTRA_BOOK),intent?.getIntExtra(PassageDeepLink.EXTRA_UNIT,0)?:0)
+        setContent{SophiaApp(model,libraryModel,(application as SophiaApplication).container.passages)}}
 }
