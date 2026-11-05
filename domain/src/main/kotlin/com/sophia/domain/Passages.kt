@@ -23,14 +23,18 @@ object PassagePicker {
     }
 
     fun fromUnitTexts(units:List<Pair<String,String>>):List<Pair<String,String>> =
-        units.flatMap{(title,text)->
+        fromIndexedUnitTexts(units.mapIndexed{index,(title,text)->Triple(index,title,text)}).map{it.second to it.third}
+
+    /** Igual a [fromUnitTexts], mas cada passagem conserva o índice real da sua unidade no livro (para abrir o leitor no capítulo certo). */
+    fun fromIndexedUnitTexts(units:List<Triple<Int,String,String>>):List<Triple<Int,String,String>> =
+        units.flatMap{(index,title,text)->
             val sentences=text.split(SENTENCE_START).map{it.trim()}.filter{it.length>=40}
-            val out=mutableListOf<Pair<String,String>>()
+            val out=mutableListOf<Triple<Int,String,String>>()
             var i=0
             while(i<sentences.size){
                 var combined=sentences[i];var j=i
                 while(combined.length<170&&j+1<sentences.size&&combined.length+1+sentences[j+1].length<=560){j++;combined+=" "+sentences[j]}
-                if(isPassage(combined)) out+=title to combined
+                if(isPassage(combined)) out+=Triple(index,title,combined)
                 i=j+1
             }
             out
