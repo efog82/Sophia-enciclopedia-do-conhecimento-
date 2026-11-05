@@ -20,7 +20,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.sophia.enciclopedia.SophiaState
 
-@Composable fun TraditionsDialog(state:SophiaState,initialTopic:String?,onClose:()->Unit,onBook:(String)->Unit,onResearch:(String)->Unit){
+@Composable fun TraditionsDialog(state:SophiaState,initialTopic:String?,onClose:()->Unit,onBook:(String)->Unit,onResearch:(String)->Unit,onBaseBook:(String)->Unit){
     var selected by rememberSaveable(initialTopic){mutableStateOf(initialTopic)}
     val article=state.histories.firstOrNull{it.id==selected}
     Dialog(onDismissRequest=onClose,properties=DialogProperties(usePlatformDefaultWidth=false)){
@@ -39,17 +39,12 @@ import com.sophia.enciclopedia.SophiaState
                     item{Text("História e contexto",style=MaterialTheme.typography.titleLarge);Text("Texto editorial Sophia · fontes numeradas por secção · revisão de 29/10/2026",style=MaterialTheme.typography.labelSmall)}
                     items(article.sections){section->Column(verticalArrangement=Arrangement.spacedBy(10.dp)){
                         Text(section.title,style=MaterialTheme.typography.titleMedium)
-                        SelectionContainer{Text(section.text,style=MaterialTheme.typography.bodyLarge)}
+                        LinkedText(section.text,MaterialTheme.typography.bodyLarge,state.baseBooks.map{it.id}.toSet(),state.histories.map{it.id}.toSet(),onBaseBook,{selected=it})
                         Text("Fontes: "+section.sources.joinToString{ "[$it]" },style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.secondary)
                     }}
                     if(article.concepts.isNotBlank())item{SectionTitle("Conceitos fundamentais");Text(article.concepts,Modifier.padding(top=8.dp))}
-                    val references=state.books.filter{book->if(article.area)book.categories.any{it.id==article.id} else book.traditions.any{it.id==article.id}}
-                    item{SectionTitle("Livros de referência e autores","Lista bibliográfica · não inclui textos integrais. As capas ilustrativas não reproduzem edições comerciais.")}
-                    if(references.isEmpty())item{Text(if(article.id=="atheism")"David Hume · História Natural da Religião (1757) e Diálogos sobre a Religião Natural (1779). Referências para estudo; nenhuma edição ou tradução incluída." else "Ainda não há referências específicas nesta área. Explora também os temas relacionados.")}
-                    items(references,key={"reference-${it.id}"}){book->BookCard(book,onOpen={onBook(book.id)},onFavorite={},showFavorite=false)}
                     item{SectionTitle("Continuar a explorar")}
                     items(article.related){id->state.histories.firstOrNull{it.id==id}?.let{related->OutlinedButton(onClick={selected=id},modifier=Modifier.fillMaxWidth().testTag("related-$id")){Text("${related.symbol}  ${related.title}")}}}
-                    if(!article.area&&article.id!="atheism")item{OutlinedButton(onClick={onResearch(article.id)},modifier=Modifier.fillMaxWidth()){Text("Investigar referências desta tradição")}}
                     item{SectionTitle("Fontes e proveniência","Links externos abrem no navegador e podem exigir Internet. O artigo pode ser lido offline.")}
                     items(article.sources.withIndex().toList()){(index,source)->
                         val uriHandler=LocalUriHandler.current
