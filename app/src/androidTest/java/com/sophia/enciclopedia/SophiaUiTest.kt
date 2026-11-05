@@ -36,6 +36,8 @@ class SophiaUiTest {
         ui.onNodeWithTag("research-screen").performScrollToNode(hasTestTag("basebook-kardec-espiritos"));ui.onNodeWithTag("basebook-kardec-espiritos").performClick()
         ui.onNodeWithTag("install-basebook-kardec-espiritos").performScrollTo().performClick()
         ui.waitUntil(25000){ui.activity.libraryModel.state.value.data.files.any{it.workId=="spirits"}}
+        awaitText("«O Livro dos Espíritos» adicionado à tua biblioteca. Boa leitura!")
+        ui.onAllNodesWithText("Fechar").onLast().performClick();awaitText("«O Livro dos Espíritos» adicionado à tua biblioteca. Boa leitura!",false)
         awaitTag("read-basebook-kardec-espiritos");ui.onNodeWithTag("read-basebook-kardec-espiritos").performScrollTo().performClick();awaitTag("reader-screen");ui.onNodeWithTag("close-reader").performClick();awaitTag("reader-screen",false)
         ui.onNodeWithText("Fechar").performClick()
         ui.activityRule.scenario.recreate();awaitTag("research-screen");ui.onNodeWithTag("research-search").assertTextContains("livro dos espiritos")
