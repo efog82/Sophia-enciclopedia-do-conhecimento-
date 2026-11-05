@@ -16,6 +16,7 @@ import java.util.UUID
 
 class RoomCatalogRepository(private val db:SophiaDatabase):CatalogRepository {
     override val histories=HistoricalEncyclopedia.articles
+    override val baseBooks=BaseBooks.all
     override val books=db.catalog().observeWorks().map{rows->rows.map{row->Book(row.work.id,row.work.title,row.work.description,row.work.originalYear,row.work.sourceUrl,row.work.sourceLabel,row.work.metadataNote,row.work.addedAt,row.credits.map{Contributor(it.person.id,it.person.displayName,ContributorRole.valueOf(it.credit.role))}.sortedBy{it.role.ordinal},row.traditions.map{Tradition(it.id,it.name,it.description,it.historicalContext,it.concepts,it.sources)},row.categories.map{Category(it.id,it.name)},row.editions.map{e->Edition(e.edition.id,e.edition.label,e.edition.publisher,e.edition.publicationYear,e.edition.language,e.edition.translationId,e.files.size,e.credits.map{Contributor(it.person.id,it.person.displayName,ContributorRole.valueOf(it.credit.role))},e.edition.rightsStatus,e.edition.sourceUrl)},row.favorites.isNotEmpty())}}
     override val traditions=db.catalog().observeTraditions().map{rows->rows.map{Tradition(it.id,it.name,it.description,it.historicalContext,it.concepts,it.sources)}}
     override val categories=db.catalog().observeCategories().map{rows->rows.map{Category(it.id,it.name)}}
@@ -45,4 +46,10 @@ class DataStorePreferences(context:Context,scope:CoroutineScope=CoroutineScope(S
     override suspend fun setReaderFontSize(size:Int){require(size in 12..36);store.edit{it[fontKey]=size}}
     override val theme:Flow<ThemeMode> = store.data.catch{e->if(e is IOException)emit(emptyPreferences()) else throw e}.map{prefs->runCatching{ThemeMode.valueOf(prefs[key]?:"SYSTEM")}.getOrDefault(ThemeMode.SYSTEM)}
     override suspend fun setTheme(mode:ThemeMode){store.edit{it[key]=mode.name}}
+    private val passageEnabledKey=booleanPreferencesKey("passage_enabled")
+    private val passageAutoKey=booleanPreferencesKey("passage_automatic")
+    private val passageHourKey=intPreferencesKey("passage_hour")
+    private val passageMinuteKey=intPreferencesKey("passage_minute")
+    override val passageSettings:Flow<PassageSettings> = store.data.catch{e->if(e is IOException)emit(emptyPreferences()) else throw e}.map{prefs->PassageSettings(prefs[passageEnabledKey]?:false,prefs[passageAutoKey]?:true,(prefs[passageHourKey]?:9).coerceIn(0,23),(prefs[passageMinuteKey]?:0).coerceIn(0,59))}
+    override suspend fun setPassageSettings(settings:PassageSettings){store.edit{it[passageEnabledKey]=settings.enabled;it[passageAutoKey]=settings.automatic;it[passageHourKey]=settings.hour.coerceIn(0,23);it[passageMinuteKey]=settings.minute.coerceIn(0,59)}}
 }
