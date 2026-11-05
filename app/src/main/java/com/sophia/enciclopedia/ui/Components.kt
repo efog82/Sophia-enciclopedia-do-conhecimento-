@@ -1,5 +1,6 @@
 package com.sophia.enciclopedia.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.ui.text.SpanStyle
@@ -15,6 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
@@ -34,7 +36,7 @@ import com.sophia.domain.Book
         }
     }
 }
-@Composable fun SectionTitle(title:String,description:String?=null){Column(verticalArrangement=Arrangement.spacedBy(4.dp)){Text(title,style=MaterialTheme.typography.titleLarge);description?.let{Text(it,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}}}
+@Composable fun SectionTitle(title:String,description:String?=null){Row(verticalAlignment=Alignment.CenterVertically){Box(Modifier.width(4.dp).height(26.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary));Column(Modifier.padding(start=10.dp),verticalArrangement=Arrangement.spacedBy(4.dp)){Text(title,style=MaterialTheme.typography.titleLarge);description?.let{Text(it,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}}}}
 @Composable fun BookCard(book:Book,busy:Boolean=false,onOpen:()->Unit,onFavorite:()->Unit,showFavorite:Boolean=true){
     Card(Modifier.fillMaxWidth().testTag("book-${book.id}").clickable(onClick=onOpen),shape=RoundedCornerShape(20.dp),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface)){
         Row(Modifier.padding(14.dp),verticalAlignment=Alignment.CenterVertically){
