@@ -89,7 +89,7 @@ class SophiaUiTest {
         shot("15-historia-hermetismo")
         ui.onNodeWithTag("history-screen").performScrollToIndex(0);ui.onNodeWithText("Fechar").performClick();awaitTag("history-screen",false)
         ui.onNodeWithTag("home-screen").performScrollToIndex(0)
-        ui.onNodeWithTag("home-search").performTextReplacement("Huxley")
+        ui.onNodeWithTag("home-screen").performScrollToNode(hasTestTag("home-search"));awaitTag("home-search");ui.onNodeWithTag("home-search").performTextReplacement("Huxley")
         ui.onNodeWithTag("home-screen").performScrollToNode(hasTestTag("topic-atheism"));ui.onNodeWithTag("topic-atheism").assertExists()
     }
 }
