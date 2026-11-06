@@ -41,7 +41,17 @@ import com.sophia.enciclopedia.*
     val picker=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()){uri->if(uri!=null){libraryVm.clearMessage();importUri=uri.toString()}}
     val read:(LibraryFile)->Unit={context.startActivity(ReaderActivity.intent(context,it.id))}
     val pick:(String?)->Unit={id->importWork=id;picker.launch(arrayOf("application/epub+zip","application/pdf","text/plain","application/octet-stream"))}
-    LaunchedEffect(importResult){importResult?.let{importUri=null;vm.openBook(it.workId);libraryVm.clearResult()}}
+    var importMatch by remember{mutableStateOf<BaseBook?>(null)}
+    var importMatchFile by remember{mutableStateOf<LibraryFile?>(null)}
+    LaunchedEffect(importResult,libraryState.data.files){
+        val result=importResult?:return@LaunchedEffect
+        val file=libraryState.data.files.firstOrNull{it.workId==result.workId}?:return@LaunchedEffect
+        importUri=null
+        val match=com.sophia.data.BaseBooks.all.firstOrNull{bb->bb.workId!=result.workId&&CatalogSearch.normalized(bb.title)==CatalogSearch.normalized(file.title)}
+        if(match!=null){importMatch=match;importMatchFile=file}
+        else vm.openBook(result.workId)
+        libraryVm.clearResult()
+    }
     // Notificação da passagem: abrir o leitor no capítulo da passagem (instala o livro-base se ainda não estiver na biblioteca).
     val passageLink by PassageDeepLink.pending.collectAsStateWithLifecycle()
     var passageInstallAsked by remember{mutableStateOf<String?>(null)}
@@ -80,7 +90,7 @@ import com.sophia.enciclopedia.*
             when{
                 state.loading->Column(Modifier.padding(24.dp)){CircularProgressIndicator();Text("A abrir a biblioteca…",Modifier.padding(top=16.dp))}
                 state.error!=null->Column(Modifier.padding(24.dp)){EmptyPanel("Dados locais indisponíveis",state.error!!);Button(onClick=vm::retry){Text("Tentar novamente")}}
-                else->when(section){Section.HOME->HomeScreen(state,dailyPassage,{appScope.launch{dailyPassage=runCatching{passagesRepo.randomPassage()}.getOrNull()}},passageSettings,{vm.setPassageSettings(it)}){id->historyTopic=id;traditionsOpen=true};Section.LIBRARY->LibraryScreen(state,vm,busy,libraryState.data,read,{pick(null)},{collectionsOpen=true},{historyTopic=null;traditionsOpen=true});Section.REFERENCES->ReferencesScreen(state,libraryState.data,importing,{libraryVm.installBundled(it)},read,baseBookFocus,{vm.clearBaseBookFocus()});Section.RESEARCH->ResearchScreen(state,libraryState.data,libraryVm,importing,{id->historyTopic=id;traditionsOpen=true},{hit->context.startActivity(ReaderActivity.intent(context,hit.fileId,LocationCodec.encode(ReadingLocation(hit.unit,0.0))))},read);Section.AI->AssistantScreen();Section.NOTES->NotesScreen(state,vm){deleteId=it.id}}
+                else->when(section){Section.HOME->HomeScreen(state,dailyPassage,{appScope.launch{dailyPassage=runCatching{passagesRepo.randomPassage()}.getOrNull()}},passageSettings,{vm.setPassageSettings(it)}){id->historyTopic=id;traditionsOpen=true};Section.LIBRARY->LibraryScreen(state,vm,busy,libraryState.data,read,{pick(null)},{collectionsOpen=true},{historyTopic=null;traditionsOpen=true},{id->vm.focusBaseBook(id);vm.navigate(Section.REFERENCES)});Section.REFERENCES->ReferencesScreen(state,libraryState.data,importing,{libraryVm.installBundled(it)},read,baseBookFocus,{vm.clearBaseBookFocus()});Section.RESEARCH->ResearchScreen(state,libraryState.data,libraryVm,importing,{id->historyTopic=id;traditionsOpen=true},{hit->context.startActivity(ReaderActivity.intent(context,hit.fileId,LocationCodec.encode(ReadingLocation(hit.unit,0.0))))},read);Section.AI->AssistantScreen();Section.NOTES->NotesScreen(state,vm){deleteId=it.id}}
             }
         }}
         if(themeOpen)AlertDialog(onDismissRequest={themeOpen=false},title={Text("Aspeto da aplicação")},text={Column{ThemeMode.entries.forEach{mode->TextButton(onClick={vm.theme(mode);themeOpen=false},modifier=Modifier.fillMaxWidth().testTag("theme-${mode.name}")){Text((if(mode==state.theme)"✓  " else "")+when(mode){ThemeMode.SYSTEM->"Seguir o sistema";ThemeMode.LIGHT->"Claro";ThemeMode.DARK->"Escuro"})}}}},confirmButton={TextButton(onClick={themeOpen=false}){Text("Fechar")}})
@@ -88,6 +98,7 @@ import com.sophia.enciclopedia.*
         if(collectionsOpen)CollectionsDialog(state,libraryState.data,libraryVm,{collectionsOpen=false},{id->collectionsOpen=false;vm.openBook(id)})
         state.books.firstOrNull{it.id==work}?.let{book->BookDetails(book,book.id in busy,{vm.closeBook()},{vm.toggleFavorite(book)},{vm.startNote(workId=book.id)},libraryState.data,libraryVm,{pick(book.id)},read)}
         importUri?.let{uri->ImportDialog(uri,importWork,state.books,importing,importMessage,{importUri=null},libraryVm::importFile)}
+        importMatch?.let{bb->AlertDialog(onDismissRequest={importMatch=null;importMatchFile=null},title={Text("Livro-base correspondente")},text={Text("O ficheiro que importaste corresponde ao livro-base «${bb.title}». Queres ver a referência — resumo, estrutura e direitos — ou abrir o livro importado?")},confirmButton={TextButton(onClick={importMatch=null;importMatchFile=null;vm.focusBaseBook(bb.id);vm.navigate(Section.REFERENCES)},modifier=Modifier.testTag("import-match-reference")){Text("Ver referência")}},dismissButton={TextButton(onClick={val f=importMatchFile;importMatch=null;importMatchFile=null;if(f!=null)vm.openBook(f.workId)}){Text("Abrir o livro")}})}
         if(importUri==null&&importMessage!=null)AlertDialog(onDismissRequest=libraryVm::clearMessage,title={Text("Biblioteca")},text={Text(importMessage!!)},confirmButton={TextButton(onClick=libraryVm::clearMessage){Text("Fechar")}})
         if(libraryState.error!=null)AlertDialog(onDismissRequest=libraryVm::retry,title={Text("Dados da biblioteca")},text={Text(libraryState.error!!)},confirmButton={TextButton(onClick=libraryVm::retry){Text("Tentar reabrir")}})
         if(editor.open)NoteEditor(editor,state.books,saving,editorError,vm,{if(vm.editorDirty())discard=true else vm.closeEditor()})
