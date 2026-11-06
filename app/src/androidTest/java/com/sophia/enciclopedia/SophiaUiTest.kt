@@ -52,8 +52,10 @@ class SophiaUiTest {
         ui.onNodeWithText("Fechar").performClick()
         ui.activityRule.scenario.recreate();awaitTag("research-screen");awaitTag("research-search");ui.onNodeWithTag("research-search").assertTextContains("livro dos espiritos")
         ui.waitUntil(30000){try{ui.onNodeWithTag("research-screen").performScrollToNode(hasText("Nos textos integrais"));ui.onAllNodesWithText("Nos textos integrais").fetchSemanticsNodes().isNotEmpty()}catch(e:AssertionError){false}}
-        ui.onNodeWithTag("research-screen").performScrollToIndex(0);awaitTag("research-search");ui.onNodeWithTag("research-search").performTextReplacement("zxqwkj");awaitText("Não encontrámos correspondências")
-        ui.onNodeWithText("Limpar").performScrollTo().performClick();awaitText("Por onde queres começar?")
+        ui.onNodeWithTag("research-screen").performScrollToIndex(0);awaitTag("research-search");ui.onNodeWithTag("research-search").performTextReplacement("zxqwkj")
+        ui.waitUntil(30000){try{ui.onNodeWithTag("research-screen").performScrollToNode(hasText("Não encontrámos correspondências"));ui.onAllNodesWithText("Não encontrámos correspondências").fetchSemanticsNodes().isNotEmpty()}catch(e:AssertionError){false}}
+        ui.onNodeWithText("Limpar").performScrollTo().performClick()
+        ui.waitUntil(30000){try{ui.onNodeWithTag("research-screen").performScrollToNode(hasText("Por onde queres começar?"));ui.onAllNodesWithText("Por onde queres começar?").fetchSemanticsNodes().isNotEmpty()}catch(e:AssertionError){false}}
         nav("AI");ui.onNodeWithText("Em desenvolvimento · fase futura").assertExists();shot("03-assistente")
         nav("NOTES");ui.onNodeWithTag("new-note").performClick()
         ui.onNodeWithTag("save-note").performScrollTo().performClick();awaitTag("note-error")
