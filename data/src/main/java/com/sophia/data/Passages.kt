@@ -31,6 +31,17 @@ class PassageRepository(private val context:Context) {
         result
     }
 
+    /** Passagens de uma tradição: amostra estável e repartida dos seus livros-base com texto integral. */
+    suspend fun passagesForTradition(traditionId:String,count:Int=6):List<Passage> {
+        val pool=BaseBooks.all.filter{it.traditionId==traditionId && it.fullTextAsset!=null}
+        if(pool.isEmpty()) return emptyList()
+        val all=pool.flatMap{passagesFor(it)}
+        if(all.size<=count) return all
+        val step=all.size.toDouble()/count
+        val offset=kotlin.math.abs(traditionId.hashCode())%all.size
+        return (0 until count).map{all[((offset+it*step).toInt())%all.size]}
+    }
+
     /** Passagem do dia: determinística por data — o mesmo texto na app e na notificação; os livros rodam dia a dia. */
     suspend fun dailyPassage(date:LocalDate=LocalDate.now()):Passage? {
         val pool=books; if(pool.isEmpty()) return null
