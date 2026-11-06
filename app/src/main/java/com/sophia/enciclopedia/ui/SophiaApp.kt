@@ -84,7 +84,7 @@ import com.sophia.enciclopedia.*
             }
         }}
         if(themeOpen)AlertDialog(onDismissRequest={themeOpen=false},title={Text("Aspeto da aplicação")},text={Column{ThemeMode.entries.forEach{mode->TextButton(onClick={vm.theme(mode);themeOpen=false},modifier=Modifier.fillMaxWidth().testTag("theme-${mode.name}")){Text((if(mode==state.theme)"✓  " else "")+when(mode){ThemeMode.SYSTEM->"Seguir o sistema";ThemeMode.LIGHT->"Claro";ThemeMode.DARK->"Escuro"})}}}},confirmButton={TextButton(onClick={themeOpen=false}){Text("Fechar")}})
-        if(traditionsOpen)TraditionsDialog(state,historyTopic,{traditionsOpen=false},{id->traditionsOpen=false;vm.openBook(id)},{id->traditionsOpen=false;vm.setFilters{it.copy(researchQuery="",researchTradition=id,author=null)};vm.navigate(Section.RESEARCH)},{id->traditionsOpen=false;vm.focusBaseBook(id)})
+        if(traditionsOpen)TraditionsDialog(state,historyTopic,{traditionsOpen=false},{id->traditionsOpen=false;vm.openBook(id)},{id->traditionsOpen=false;vm.setFilters{it.copy(researchQuery="",researchTradition=id,author=null)};vm.navigate(Section.RESEARCH)},{id->traditionsOpen=false;vm.focusBaseBook(id)},{tid->passagesRepo.passagesForTradition(tid)},{p->traditionsOpen=false;PassageDeepLink.offer(p.bookId,p.unitIndex)})
         if(collectionsOpen)CollectionsDialog(state,libraryState.data,libraryVm,{collectionsOpen=false},{id->collectionsOpen=false;vm.openBook(id)})
         state.books.firstOrNull{it.id==work}?.let{book->BookDetails(book,book.id in busy,{vm.closeBook()},{vm.toggleFavorite(book)},{vm.startNote(workId=book.id)},libraryState.data,libraryVm,{pick(book.id)},read)}
         importUri?.let{uri->ImportDialog(uri,importWork,state.books,importing,importMessage,{importUri=null},libraryVm::importFile)}
