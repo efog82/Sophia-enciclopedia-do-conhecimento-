@@ -134,7 +134,7 @@ import java.util.Locale
         }
         item{Text("Piloto: Espiritismo. As restantes tradições ganham os seus livros-base por fases, com a mesma regra — integral só quando for legal.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}
     }
-    selected?.let{book->BaseBookDetail(book,state.traditions.firstOrNull{it.id==book.traditionId}?.name?:"",library.files.firstOrNull{it.workId==book.workId},installing,{onInstall(book)},onReadFile){selected=null}}
+    selected?.let{book->BaseBookDetail(book,state.traditions.firstOrNull{it.id==book.traditionId}?.name?:"",book.matchInLibrary(library.files),installing,{onInstall(book)},onReadFile){selected=null}}
 }
 @Composable fun BaseBookDetail(book:BaseBook,traditionName:String,file:LibraryFile?,installing:Boolean,onInstall:()->Unit,onReadFile:(LibraryFile)->Unit,onClose:()->Unit){
     LibraryDialog(book.title,onClose){
@@ -147,14 +147,15 @@ import java.util.Locale
         Text(book.composition,style=MaterialTheme.typography.bodyLarge)
         SectionTitle("Direitos e texto")
         Text(book.rightsNote,style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
-        if(book.fullTextAsset==null&&book.rights==BaseBookRights.PUBLIC_DOMAIN)Text("O texto integral desta obra está a ser preparado para leitura e pesquisa dentro da app.",style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
-        if(book.fullTextAsset!=null){
-            if(file!=null)Button(onClick={onReadFile(file)},modifier=Modifier.fillMaxWidth().testTag("read-basebook-${book.id}")){Text("Ler agora")}
-            else Button(onClick=onInstall,enabled=!installing,modifier=Modifier.fillMaxWidth().testTag("install-basebook-${book.id}")){Text(if(installing)"A adicionar…" else "Adicionar à biblioteca e ler")}
+        if(book.fullTextAsset==null&&book.rights==BaseBookRights.PUBLIC_DOMAIN&&file==null)Text("O texto integral desta obra está a ser preparado para leitura e pesquisa dentro da app.",style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
+        if(file!=null){
+            Surface(shape=RoundedCornerShape(12.dp),color=MaterialTheme.colorScheme.primaryContainer){Text("Este livro já está na tua biblioteca.",Modifier.padding(12.dp),style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onPrimaryContainer)}
+            Button(onClick={onReadFile(file)},modifier=Modifier.fillMaxWidth().testTag("read-basebook-${book.id}")){Text("Ler agora")}
         }
+        else if(book.fullTextAsset!=null)Button(onClick=onInstall,enabled=!installing,modifier=Modifier.fillMaxWidth().testTag("install-basebook-${book.id}")){Text(if(installing)"A adicionar…" else "Adicionar à biblioteca e ler")}
     }
 }
-@Composable fun LibraryScreen(state:SophiaState,vm:SophiaViewModel,busy:Set<String>,library:LibrarySnapshot,onRead:(LibraryFile)->Unit,onImport:()->Unit,onCollections:()->Unit,onTraditions:()->Unit){
+@Composable fun LibraryScreen(state:SophiaState,vm:SophiaViewModel,busy:Set<String>,library:LibrarySnapshot,onRead:(LibraryFile)->Unit,onImport:()->Unit,onCollections:()->Unit,onTraditions:()->Unit,onBaseBookRef:(String)->Unit={}){
     LazyColumn(Modifier.fillMaxSize().testTag("library-screen"),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(14.dp)){
         item{SectionTitle("A tua biblioteca","Os teus livros importados, disponíveis para leitura offline.")}
         item{Button(onClick=onImport,modifier=Modifier.fillMaxWidth().testTag("import-file")){Icon(Icons.Outlined.FileOpen,null);Text("Importar EPUB, PDF ou TXT",Modifier.padding(start=8.dp))}}
@@ -168,7 +169,10 @@ import java.util.Locale
         else if(filteredFiles.isEmpty())item{EmptyPanel("Nenhum livro importado neste filtro","Experimenta outro título, autor ou tradição, ou limpa os filtros.",Icons.Outlined.SearchOff)}
         items(filteredFiles,key={"file-${it.id}"}){file->Column(verticalArrangement=Arrangement.spacedBy(4.dp)){
             FileCard(file){onRead(file)}
-            TextButton(onClick={vm.openBook(file.workId)},modifier=Modifier.testTag("file-details-${file.id}")){Text("Detalhes, favoritos e notas")}
+            Row{
+                TextButton(onClick={vm.openBook(file.workId)},modifier=Modifier.testTag("file-details-${file.id}")){Text("Detalhes, favoritos e notas")}
+                state.baseBooks.firstOrNull{bb->bb.matchInLibrary(listOf(file))!=null}?.let{bb->TextButton(onClick={onBaseBookRef(bb.id)},modifier=Modifier.testTag("file-basebook-${file.id}")){Text("Livro-base · ver referência")}}
+            }
         }}
         item{Spacer(Modifier.height(16.dp))}
     }
@@ -199,7 +203,7 @@ import java.util.Locale
             items(hits,key={"hit-${it.fileId}-${it.unit}"}){hit->Card(Modifier.fillMaxWidth().clickable{onOpenHit(hit)},shape=RoundedCornerShape(18.dp)){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(4.dp)){Text(hit.bookTitle,style=MaterialTheme.typography.titleSmall);Text(hit.unitTitle,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.secondary);Text(hit.snippet,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}}}
         }
     }
-    selected?.let{book->BaseBookDetail(book,state.traditions.firstOrNull{it.id==book.traditionId}?.name?:"",library.files.firstOrNull{it.workId==book.workId},installing,{libraryVm.installBundled(book)},onReadFile){selected=null}}
+    selected?.let{book->BaseBookDetail(book,state.traditions.firstOrNull{it.id==book.traditionId}?.name?:"",book.matchInLibrary(library.files),installing,{libraryVm.installBundled(book)},onReadFile){selected=null}}
 }
 @Composable fun SearchInput(value:String,onChange:(String)->Unit,label:String,tag:String){val keyboard=LocalSoftwareKeyboardController.current;OutlinedTextField(value,onChange,keyboardOptions=KeyboardOptions(imeAction=ImeAction.Search),keyboardActions=KeyboardActions(onSearch={keyboard?.hide()}),label={Text(label)},singleLine=true,leadingIcon={Icon(Icons.Outlined.Search,null)},trailingIcon={if(value.isNotEmpty())IconButton(onClick={onChange("")}){Icon(Icons.Outlined.Close,"Limpar pesquisa")}},modifier=Modifier.fillMaxWidth().testTag(tag),shape=RoundedCornerShape(16.dp))}
 @Composable fun AssistantScreen(){
