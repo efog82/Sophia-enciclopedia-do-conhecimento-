@@ -24,3 +24,22 @@ data class HistoryArticle(
         return CatalogSearch.normalized(query).split(Regex("\\s+")).filter{it.isNotBlank()}.all{it in haystack}
     }
 }
+
+/** Palavras distintivas de um nome de pessoa (5+ letras): servem para ligar a figura a textos e a autoria de livros. */
+fun HistoryFigure.matchTokens():List<String> =
+    CatalogSearch.normalized(name).split(Regex("[^a-z]+")).filter{it.length>=5}
+
+/** A pessoa é mencionada neste texto? Pelo nome completo, ou por uma palavra distintiva do nome como palavra inteira. */
+fun HistoryFigure.isMentionedIn(text:String):Boolean {
+    val folded=CatalogSearch.normalized(text)
+    if(folded.contains(CatalogSearch.normalized(name)))return true
+    return matchTokens().any{token->Regex("(^|[^a-z])"+Regex.escape(token)+"([^a-z]|$)").containsMatchIn(folded)}
+}
+
+/** Secções do artigo que mencionam a pessoa — o material do «percurso» na página da pessoa. */
+fun HistoryArticle.sectionsMentioning(figure:HistoryFigure):List<HistorySection> =
+    sections.filter{figure.isMentionedIn(it.title+" "+it.text)}
+
+/** Marcos da linha do tempo que mencionam a pessoa. */
+fun HistoryArticle.eventsMentioning(figure:HistoryFigure):List<HistoryEvent> =
+    timeline.filter{figure.isMentionedIn(it.title+" "+it.text)}
