@@ -23,6 +23,17 @@ data class BaseBook(val id:String,val traditionId:String,val title:String,val au
     /** Obra da biblioteca a que o texto integral fica associado («spirits» é a obra semeada de O Livro dos Espíritos). */
     val workId:String get()=if(id=="kardec-espiritos")"spirits" else id
 }
+
+/** Livro da autoria desta pessoa? Casa pelo nome completo no campo de autor, ou por uma palavra distintiva do nome (ex.: «Kardec», «Xavier»). */
+fun BaseBook.authoredBy(personName:String):Boolean {
+    val foldedAuthor=CatalogSearch.normalized(author)
+    if(foldedAuthor.contains(CatalogSearch.normalized(personName)))return true
+    return CatalogSearch.normalized(personName).split(Regex("[^a-z]+")).filter{it.length>=5}.any{foldedAuthor.contains(it)}
+}
+
+/** Exemplar deste livro-base na biblioteca do utilizador: pela obra (workId), ou pelo título quando o ficheiro foi importado à mão para outra obra. */
+fun BaseBook.matchInLibrary(files:List<LibraryFile>):LibraryFile? =
+    files.firstOrNull{it.workId==workId} ?: files.firstOrNull{CatalogSearch.normalized(it.title)==CatalogSearch.normalized(title)}
 data class StudyNote(val id:String,val title:String,val body:String,val workId:String?,val createdAt:Long,val updatedAt:Long,val fileId:String?=null,val locatorJson:String?=null,val excerpt:String?=null)
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 interface CatalogRepository {
