@@ -4,6 +4,7 @@ package com.sophia.domain
 data class HistorySource(val title:String,val url:String,val kind:String="Estudo histórico")
 data class HistorySection(val title:String,val text:String,val sources:List<Int>)
 data class HistoryFigure(val name:String,val dates:String,val text:String)
+data class HistoryConcept(val term:String,val text:String)
 data class HistoryEvent(val period:String,val title:String,val text:String)
 data class HistoryArticle(
     val id:String,
@@ -17,10 +18,11 @@ data class HistoryArticle(
     val concepts:String="",
     val figures:List<HistoryFigure> = emptyList(),
     val timeline:List<HistoryEvent> = emptyList(),
-    val practices:List<HistorySection> = emptyList()
+    val practices:List<HistorySection> = emptyList(),
+    val conceptItems:List<HistoryConcept> = emptyList()
 ) {
     fun matches(query:String):Boolean {
-        val haystack=CatalogSearch.normalized(title+" "+description+" "+concepts+" "+sections.joinToString(" "){it.title+" "+it.text})
+        val haystack=CatalogSearch.normalized(title+" "+description+" "+concepts+" "+conceptItems.joinToString(" "){it.term+" "+it.text}+" "+sections.joinToString(" "){it.title+" "+it.text})
         return CatalogSearch.normalized(query).split(Regex("\\s+")).filter{it.isNotBlank()}.all{it in haystack}
     }
 }
