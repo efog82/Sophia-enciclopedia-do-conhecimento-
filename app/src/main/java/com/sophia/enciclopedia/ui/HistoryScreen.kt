@@ -86,7 +86,7 @@ import com.sophia.enciclopedia.SophiaState
                         if(article.timeline.isNotEmpty())add("tempo" to "Linha do tempo")
                         if(article.practices.isNotEmpty())add("praticas" to "Práticas")
                         if(baseBooks.isNotEmpty())add("livros" to "Livros-base")
-                        if(article.concepts.isNotBlank())add("conceitos" to "Conceitos")
+                        if(article.conceptItems.isNotEmpty()||article.concepts.isNotBlank())add("conceitos" to "Conceitos")
                         if(loadPassages!=null&&baseBooks.any{it.fullTextAsset!=null})add("passagens" to "Passagens")
                     }
                     val effectiveTab=if(tabs.any{it.first==tab})tab else "intro"
@@ -117,7 +117,14 @@ import com.sophia.enciclopedia.SophiaState
                         "livros"->items(baseBooks){book->Card(onClick={onBaseBook(book.id)},modifier=Modifier.fillMaxWidth().testTag("article-book-${book.id}"),shape=RoundedCornerShape(18.dp)){
                             Row(Modifier.padding(12.dp),verticalAlignment=Alignment.CenterVertically){BookCover(book.title,book.traditionId,modifier=Modifier.width(46.dp).height(64.dp));Column(Modifier.padding(start=12.dp),verticalArrangement=Arrangement.spacedBy(2.dp)){Text(book.title,style=MaterialTheme.typography.titleSmall);Text(book.author,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant);Text(if(book.fullTextAsset!=null)"Texto integral na app" else "Resumo e estrutura",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.primary)}}
                         }}
-                        "conceitos"->item{Column{SectionTitle("Conceitos fundamentais");Text(article.concepts,Modifier.padding(top=8.dp),style=MaterialTheme.typography.bodyLarge)}}
+                        "conceitos"->{
+                            item{SectionTitle("Conceitos fundamentais","Os termos-chave, explicados um a um.")}
+                            if(article.conceptItems.isNotEmpty())items(article.conceptItems){concept->Column(verticalArrangement=Arrangement.spacedBy(10.dp)){
+                                Row(verticalAlignment=Alignment.CenterVertically){Box(Modifier.width(4.dp).height(26.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary));Text(concept.term,Modifier.padding(start=10.dp),style=MaterialTheme.typography.headlineSmall.copy(fontWeight=FontWeight.Bold),color=MaterialTheme.colorScheme.primary)}
+                                Text(concept.text,style=MaterialTheme.typography.bodyLarge)
+                            }}
+                            else item{Text(article.concepts,style=MaterialTheme.typography.bodyLarge)}
+                        }
                         "passagens"->{
                             val loaded=passages
                             if(loaded==null)item{Text("A preparar passagens…",style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)}
