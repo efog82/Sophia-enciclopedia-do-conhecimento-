@@ -7,12 +7,14 @@ import com.sophia.domain.BaseBookRights
  * Livros-base das tradições: conteúdo editorial da Sophia, não referências vazias.
  * Texto integral apenas quando os direitos o permitem (ver rightsNote de cada livro);
  * nas obras protegidas apresentam-se resumo e estrutura, sem reproduzir o texto.
- * Piloto: Espiritismo (Kardec integral em domínio público; André Luiz só com resumo).
+ * Pilotos: Espiritismo (Kardec integral em domínio público; André Luiz só com resumo)
+ * e Cristianismo (Bíblia de Almeida, texto de 1898, integral em domínio público).
  */
 object BaseBooks {
     private const val KARDEC_NOTE="Obra em domínio público. A Sophia integra o texto a partir da tradução portuguesa de Ery Lopes (Portal Luz Espírita), de reprodução livre, feita das edições francesas originais."
     private const val ANDRE_NOTE="Obra protegida por direitos de autor (Federação Espírita Brasileira). A Sophia não reproduz o texto: apresenta apenas resumo e estrutura, de elaboração editorial própria."
     private const val ANDRE_AUTHOR="André Luiz (autor atribuído) · psicografia de Chico Xavier"
+    private const val BIBLIA_NOTE="Texto em domínio público: tradução de João Ferreira de Almeida na Almeida Revista e Corrigida (revisão de 1898), a edição distribuída desde 1948 conhecida por JFAC. Texto digital: transcrição integral de Ricardo Augusto de Oliveira (Renova-me Deus Meu, 2025), disponibilizada como domínio público. A Sophia reproduz o texto na íntegra."
 
     val all:List<BaseBook> = listOf(
         BaseBook("kardec-espiritos","spiritism","O Livro dos Espíritos","Allan Kardec",1857,BaseBookRights.PUBLIC_DOMAIN,KARDEC_NOTE,
@@ -30,6 +32,9 @@ object BaseBooks {
         BaseBook("kardec-genese","spiritism","A Génese","Allan Kardec",1868,BaseBookRights.PUBLIC_DOMAIN,KARDEC_NOTE,
             "A última das obras básicas, publicada no ano anterior à morte de Kardec. Aplica o critério espírita a três terrenos: a génese do mundo e da humanidade (em diálogo com a ciência da época), os milagres — explicados como fenómenos naturais regidos por leis ainda pouco conhecidas — e as predições dos Evangelhos, incluindo a leitura espírita dos «sinais dos tempos».",
             "Três partes. Parte I, A Génese: caráter da revelação espírita, Deus, o bem e o mal, papel da ciência, sistemas do mundo, génese orgânica, génese espiritual, génese mosaica e a formação da Terra. Parte II, Os Milagres: caráter dos milagres, os fluidos e os milagres do Evangelho, um a um. Parte III, As Predições: teoria da presciência, predições do Evangelho e o capítulo final «Os tempos são chegados», sobre os sinais dos tempos e a nova geração.",fullTextAsset="books/kardec-genese.epub"),
+        BaseBook("biblia-almeida-1898","christianity","Bíblia Sagrada — Almeida, texto de 1898","João Ferreira de Almeida",1898,BaseBookRights.PUBLIC_DOMAIN,BIBLIA_NOTE,
+            "A Bíblia completa — 66 livros, do Génesis ao Apocalipse — na tradução clássica de João Ferreira de Almeida, o texto português da Bíblia mais lido dos últimos três séculos, aqui na revisão de 1898 (Almeida Revista e Corrigida). É o livro-base do Cristianismo: as Escrituras que as igrejas leem, citam e comentam, e a fonte das passagens bíblicas da passagem diária da Sophia. Para comparação de leituras, a Sophia prepara ao lado a edição clássica de Almeida de 1819.",
+            "Duas partes. Antigo Testamento, 39 livros: Pentateuco (Génesis a Deuteronómio), livros históricos (Josué a Ester), livros poéticos (Jó a Cântico dos Cânticos), profetas maiores (Isaías a Daniel) e profetas menores (Oseias a Malaquias). Novo Testamento, 27 livros: os Evangelhos (Mateus a João), Atos dos Apóstolos, as cartas de Paulo, as cartas gerais e o Apocalipse.",fullTextAsset="books/biblia-jfac.epub"),
         BaseBook("andre-nosso-lar","spiritism","Nosso Lar",ANDRE_AUTHOR,1944,BaseBookRights.PROTECTED,ANDRE_NOTE,
             "O livro mais conhecido da série e a porta de entrada de gerações de leitores para a literatura espírita. André Luiz, médico desencarnado, narra a sua chegada ao mundo espiritual: depois de anos de sofrimento numa zona chamada Umbral, é resgatado para a colónia Nosso Lar, onde reaprende a viver — pelo trabalho, pela disciplina e pelo serviço aos outros. A narrativa apresenta, em forma de história, a geografia e a organização que a tradição atribui à vida depois da morte.",
             "50 capítulos curtos, narrados na primeira pessoa. Descreve a colónia Nosso Lar (a Governadoria, os ministérios, os postos de socorro), o Umbral, o regresso temporário à Terra e personagens como Lísias, D. Laura, Narcisa e Tobias. Abre a série «A Vida no Mundo Espiritual»."),
