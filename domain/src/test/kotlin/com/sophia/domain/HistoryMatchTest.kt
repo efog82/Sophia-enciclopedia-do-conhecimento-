@@ -43,6 +43,15 @@ class HistoryMatchTest {
         assertFalse(kardec.isMentionedIn("um texto sem o nome"))
     }
 
+    @Test fun searchReachesExplainedConcepts(){
+        val article=HistoryArticle("spiritism","Espiritismo","✧","desc",
+            sections=emptyList(),sources=emptyList(),related=emptyList(),
+            conceptItems=listOf(HistoryConcept("Reencarnação","O espírito vive muitas existências corporais sucessivas.")))
+        assertTrue(article.matches("reencarnacao"))
+        assertTrue(article.matches("existências corporais"))
+        assertFalse(article.matches("astrologia chinesa"))
+    }
+
     @Test fun libraryMatchPrefersWorkIdAndFallsBackToTitle(){
         val spirits=book("kardec-espiritos","O Livro dos Espíritos","Allan Kardec")
         val byWork=file("f1","spirits","Cópia instalada")
