@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CI emulator only: verify a normal signed 0.2.0 -> 0.9.0 install -r, without uninstall."""
+"""CI emulator only: verify a normal signed 0.2.0 -> 0.10.0 install -r, without uninstall."""
 import argparse
 from contextlib import closing
 import hashlib
@@ -19,7 +19,7 @@ def tables(root):
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--apk',type=Path,required=True);args=parser.parse_args()
-    assert apk_info(args.apk)['versionCode']==11
+    assert apk_info(args.apk)['versionCode']==12
     device=Device(emulator_only=True)
     device.stop()
     with tempfile.TemporaryDirectory(prefix='sophia-update-v02-') as temp:
@@ -52,9 +52,9 @@ def main():
         assert (after/'files/books/ci-update.txt').read_bytes()==text
         assert preferences=={str(p.relative_to(after)):p.read_bytes() for p in (after/'files/datastore').glob('*.preferences_pb')}
         installed=device.run('shell','dumpsys','package',PACKAGE).decode()
-        assert 'versionName=0.9.0' in installed
+        assert 'versionName=0.10.0' in installed
         device.start()
-        print('ATUALIZAÇÃO DIRETA v0.2.0 → v0.9.0 APROVADA: assinatura, tabelas Room, ficheiro, marcador, posição, notas, favoritos, coleção e preferências preservados.')
+        print('ATUALIZAÇÃO DIRETA v0.2.0 → v0.10.0 APROVADA: assinatura, tabelas Room, ficheiro, marcador, posição, notas, favoritos, coleção e preferências preservados.')
 
 
 if __name__=='__main__':main()
