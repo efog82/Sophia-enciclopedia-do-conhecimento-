@@ -19,7 +19,7 @@ import java.util.zip.*
 class ReaderFlowTest {
     @get:Rule val ui=createAndroidComposeRule<MainActivity>()
     private val device get()=UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-    private fun awaitTag(tag:String,present:Boolean=true){ui.waitUntil(30000){ui.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()==present}}
+    private fun awaitTag(tag:String,present:Boolean=true){ui.waitUntil(30000){try{ui.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()==present}catch(e:IllegalStateException){!present}}}
     private fun screenshot(name:String){ui.waitForIdle();listOf("mkdir -p /sdcard/Download/Sophia-Test","screencap -p /sdcard/Download/Sophia-Test/$name.png").forEach{command->InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand(command).use{fd->FileInputStream(fd.fileDescriptor).use{it.readBytes()}}}}
     private fun requireDocumentText(text:String){
         if(device.wait(Until.hasObject(By.textContains(text)),15000)!=true){
@@ -55,7 +55,7 @@ class ReaderFlowTest {
             }
         }
         if(!selected){val xml=java.io.ByteArrayOutputStream();device.dumpWindowHierarchy(xml);xml.toString("UTF-8").chunked(3000).forEach{android.util.Log.e("SophiaSAF",it)};error("O seletor não abriu a pasta de testes correta")}
-        clickStable(By.text(name));awaitTag("confirm-import")
+        clickStable(By.text(name));if(device.wait(Until.hasObject(By.pkg("com.sophia.enciclopedia")),15000)!=true){device.pressBack();clickStable(By.text(name));device.wait(Until.hasObject(By.pkg("com.sophia.enciclopedia")),15000)};awaitTag("confirm-import")
         ui.onNodeWithTag("import-rights").performScrollTo().performClick();ui.onNodeWithTag("confirm-import").performScrollTo().performClick()
         ui.waitUntil(20000){ui.onAllNodesWithText("Ficheiro importado. Já pode ser lido offline.").fetchSemanticsNodes().isNotEmpty()}
         ui.onNodeWithText("Fechar").performClick();awaitTag("book-details")
