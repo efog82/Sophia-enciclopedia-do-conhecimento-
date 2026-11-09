@@ -63,6 +63,21 @@ class MigrationAndImportTest {
         val uri=fixture("${UUID.randomUUID()}.bin",byteArrayOf(0,1,2));var denied=false;try{repo.importFile(ImportRequest(uri.toString()))}catch(e:IllegalArgumentException){denied=true};assertTrue(denied)
         var incompatible=false;try{repo.importFile(ImportRequest(uri.toString(),authorised=true))}catch(e:IllegalArgumentException){incompatible=true};assertTrue(incompatible);assertTrue(repo.snapshot.first().files.isEmpty())
     }}
+    @Test fun importedBookGetsTraditionAtImportAndCanChangeOrLoseIt()=runBlocking{isolated{db,repo->
+        val bytes="Texto pessoal para atribuir a uma tradição.\n".repeat(60).toByteArray();val uri=fixture("${UUID.randomUUID()}.txt",bytes)
+        // «atheism» não tem linha semeada em traditions: a atribuição tem de a criar para a chave estrangeira ser válida.
+        val result=repo.importFile(ImportRequest(uri.toString(),authorised=true,traditionId="atheism"));assertFalse(result.duplicate)
+        assertEquals(listOf("atheism"),repo.snapshot.first().files.single().traditionIds)
+        assertEquals(listOf("atheism"),RoomCatalogRepository(db).books.first().first{it.id==result.workId}.traditions.map{it.id})
+        repo.setWorkTradition(result.workId,"spiritism");assertEquals(listOf("spiritism"),repo.snapshot.first().files.single().traditionIds)
+        repo.setWorkTradition(result.workId,null);assertTrue(repo.snapshot.first().files.single().traditionIds.isEmpty())
+        // Sem tradição no pedido, o comportamento é o de sempre: só na Biblioteca.
+        val plain=repo.importFile(ImportRequest(fixture("${UUID.randomUUID()}.txt","Outro texto pessoal, sem tradição.\n".repeat(60).toByteArray()).toString(),authorised=true))
+        assertTrue(repo.snapshot.first().files.first{it.id==plain.fileId}.traditionIds.isEmpty())
+        // Ficheiro duplicado com tradição no pedido: não duplica o ficheiro, mas aplica a atribuição.
+        val again=repo.importFile(ImportRequest(uri.toString(),authorised=true,traditionId="buddhism"));assertTrue(again.duplicate);assertEquals(result.fileId,again.fileId)
+        assertEquals(listOf("buddhism"),repo.snapshot.first().files.first{it.id==result.fileId}.traditionIds)
+    }}
     @Test fun readingListsReorderAndDeleteWithoutDeletingWorks()=runBlocking{isolated{db,repo->
         repo.createCollection("Estudo comparativo",true);val id=repo.snapshot.first().collections.single().id;repo.setInCollection(id,"spirits",true);repo.setInCollection(id,"rigveda",true);repo.setInCollection(id,"rigveda",true);repo.moveInCollection(id,"rigveda",-1);assertEquals(listOf("rigveda","spirits"),repo.snapshot.first().collections.single().workIds);repo.deleteCollection(id);assertTrue(repo.snapshot.first().collections.isEmpty());assertNotNull(db.library().workTitle("rigveda"))
     }}

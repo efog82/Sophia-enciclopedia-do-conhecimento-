@@ -23,13 +23,16 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.sophia.domain.LibraryFile
+import com.sophia.domain.LibrarySnapshot
 import com.sophia.domain.Passage
 import com.sophia.domain.authoredBy
 import com.sophia.domain.eventsMentioning
+import com.sophia.domain.matchInLibrary
 import com.sophia.domain.sectionsMentioning
 import com.sophia.enciclopedia.SophiaState
 
-@Composable fun TraditionsDialog(state:SophiaState,initialTopic:String?,onClose:()->Unit,onBook:(String)->Unit,onResearch:(String)->Unit,onBaseBook:(String)->Unit,loadPassages:(suspend (String)->List<Passage>)?=null,onPassage:(Passage)->Unit={}){
+@Composable fun TraditionsDialog(state:SophiaState,initialTopic:String?,onClose:()->Unit,onBook:(String)->Unit,onResearch:(String)->Unit,onBaseBook:(String)->Unit,loadPassages:(suspend (String)->List<Passage>)?=null,onPassage:(Passage)->Unit={},library:LibrarySnapshot=LibrarySnapshot(),onReadFile:(LibraryFile)->Unit={}){
     var selected by rememberSaveable(initialTopic){mutableStateOf(initialTopic)}
     val article=state.histories.firstOrNull{it.id==selected}
     var tab by rememberSaveable(selected){mutableStateOf("intro")}
@@ -61,7 +64,7 @@ import com.sophia.enciclopedia.SophiaState
                         if(personBooks.isNotEmpty()){
                             item{SectionTitle("Livros da sua autoria")}
                             items(personBooks,key={"person-book-${it.id}"}){book->Card(onClick={onBaseBook(book.id)},modifier=Modifier.fillMaxWidth().testTag("person-book-${book.id}"),shape=RoundedCornerShape(18.dp)){
-                                Row(Modifier.padding(12.dp),verticalAlignment=Alignment.CenterVertically){BookCover(book.title,book.traditionId,modifier=Modifier.width(46.dp).height(64.dp));Column(Modifier.padding(start=12.dp),verticalArrangement=Arrangement.spacedBy(2.dp)){Text(book.title,style=MaterialTheme.typography.titleSmall);Text(book.author,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant);Text(if(book.fullTextAsset!=null)"Texto integral na app" else "Resumo e estrutura",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.primary)}}
+                                Row(Modifier.padding(12.dp),verticalAlignment=Alignment.CenterVertically){BookCover(book.title,book.traditionId,author=book.author,modifier=Modifier.width(46.dp).height(64.dp));Column(Modifier.padding(start=12.dp),verticalArrangement=Arrangement.spacedBy(2.dp)){Text(book.title,style=MaterialTheme.typography.titleSmall);Text(book.author,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant);Text(if(book.fullTextAsset!=null)"Texto integral na app" else "Resumo e estrutura",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.primary)}}
                             }}
                         }
                         val personEvents=article.eventsMentioning(personFigure)
@@ -79,13 +82,15 @@ import com.sophia.enciclopedia.SophiaState
                         }
                     }else{
                     val baseBooks=state.baseBooks.filter{it.traditionId==article.id}
+                    val baseFileIds=baseBooks.mapNotNull{it.matchInLibrary(library.files)?.id}.toSet()
+                    val importedFiles=library.files.filter{it.rightsStatus=="USER_AUTHORISED_NOT_VERIFIED"&&article.id in it.traditionIds&&it.id !in baseFileIds}
                     val tabs=buildList{
                         add("intro" to "Introdução")
                         if(article.sections.isNotEmpty())add("historia" to "História")
                         if(article.figures.isNotEmpty())add("nomes" to "Nomes de renome")
                         if(article.timeline.isNotEmpty())add("tempo" to "Linha do tempo")
                         if(article.practices.isNotEmpty())add("praticas" to "Práticas")
-                        if(baseBooks.isNotEmpty())add("livros" to "Livros-base")
+                        if(baseBooks.isNotEmpty()||importedFiles.isNotEmpty())add("livros" to "Livros-base")
                         if(article.conceptItems.isNotEmpty()||article.concepts.isNotBlank())add("conceitos" to "Conceitos")
                         if(loadPassages!=null&&baseBooks.any{it.fullTextAsset!=null})add("passagens" to "Passagens")
                     }
@@ -114,9 +119,15 @@ import com.sophia.enciclopedia.SophiaState
                             Row(verticalAlignment=Alignment.CenterVertically){Box(Modifier.width(4.dp).height(26.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary));Text(section.title,Modifier.padding(start=10.dp),style=MaterialTheme.typography.headlineSmall.copy(fontWeight=FontWeight.Bold),color=MaterialTheme.colorScheme.primary)}
                             Text(section.text,style=MaterialTheme.typography.bodyLarge)
                         }}
-                        "livros"->items(baseBooks){book->Card(onClick={onBaseBook(book.id)},modifier=Modifier.fillMaxWidth().testTag("article-book-${book.id}"),shape=RoundedCornerShape(18.dp)){
-                            Row(Modifier.padding(12.dp),verticalAlignment=Alignment.CenterVertically){BookCover(book.title,book.traditionId,modifier=Modifier.width(46.dp).height(64.dp));Column(Modifier.padding(start=12.dp),verticalArrangement=Arrangement.spacedBy(2.dp)){Text(book.title,style=MaterialTheme.typography.titleSmall);Text(book.author,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant);Text(if(book.fullTextAsset!=null)"Texto integral na app" else "Resumo e estrutura",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.primary)}}
-                        }}
+                        "livros"->{
+                            items(baseBooks){book->Card(onClick={onBaseBook(book.id)},modifier=Modifier.fillMaxWidth().testTag("article-book-${book.id}"),shape=RoundedCornerShape(18.dp)){
+                                Row(Modifier.padding(12.dp),verticalAlignment=Alignment.CenterVertically){BookCover(book.title,book.traditionId,author=book.author,modifier=Modifier.width(46.dp).height(64.dp));Column(Modifier.padding(start=12.dp),verticalArrangement=Arrangement.spacedBy(2.dp)){Text(book.title,style=MaterialTheme.typography.titleSmall);Text(book.author,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant);Text(if(book.fullTextAsset!=null)"Texto integral na app" else "Resumo e estrutura",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.primary)}}
+                            }}
+                            if(importedFiles.isNotEmpty()){
+                                item{SectionTitle("Os teus livros importados","Livros que importaste e atribuíste a esta tradição.")}
+                                items(importedFiles,key={"imported-${it.id}"}){file->FileCard(file){onReadFile(file)}}
+                            }
+                        }
                         "conceitos"->{
                             item{SectionTitle("Conceitos fundamentais","Os termos-chave, explicados um a um.")}
                             if(article.conceptItems.isNotEmpty())items(article.conceptItems){concept->Column(verticalArrangement=Arrangement.spacedBy(10.dp)){
@@ -141,7 +152,7 @@ import com.sophia.enciclopedia.SophiaState
                                 if(article.timeline.isNotEmpty())add("tempo" to "Linha do tempo · ${article.timeline.first().period} → ${article.timeline.last().period} · ${article.timeline.size} marcos")
                                 if(article.figures.isNotEmpty())add("nomes" to "Nomes de renome · "+article.figures.take(3).joinToString(", "){it.name}+if(article.figures.size>3)"…" else "")
                                 if(article.practices.isNotEmpty())add("praticas" to "Práticas · "+article.practices.take(2).joinToString(", "){it.title}+if(article.practices.size>2)"…" else "")
-                                if(baseBooks.isNotEmpty())add("livros" to "Livros-base · ${baseBooks.size} obras · ${baseBooks.count{it.fullTextAsset!=null}} com texto integral")
+                                if(baseBooks.isNotEmpty()||importedFiles.isNotEmpty())add("livros" to "Livros-base · ${baseBooks.size+importedFiles.size} obras · ${baseBooks.count{it.fullTextAsset!=null}} com texto integral"+(if(importedFiles.isNotEmpty())" · ${importedFiles.size} ${if(importedFiles.size==1)"importado por ti" else "importados por ti"}" else ""))
                                 if(article.sections.isNotEmpty())add("historia" to "História · ${article.sections.size} secções documentadas")
                             }
                             if(highlights.isNotEmpty())item{

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CI emulator only: verify a normal signed 0.2.0 -> 0.10.0 install -r, without uninstall."""
+"""CI emulator only: verify a normal signed 0.2.0 -> 0.11.0 install -r, without uninstall."""
 import argparse
 from contextlib import closing
 import hashlib
@@ -19,7 +19,7 @@ def tables(root):
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--apk',type=Path,required=True);args=parser.parse_args()
-    assert apk_info(args.apk)['versionCode']==12
+    assert apk_info(args.apk)['versionCode']==13
     device=Device(emulator_only=True)
     device.stop()
     with tempfile.TemporaryDirectory(prefix='sophia-update-v02-') as temp:

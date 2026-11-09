@@ -1,17 +1,24 @@
 package com.sophia.enciclopedia.ui
 
+import android.content.Context
+import android.graphics.BitmapFactory
+import android.util.LruCache
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.sophia.enciclopedia.R
 
@@ -41,8 +48,32 @@ fun topicArtResource(topicId:String):Int=when(topicId){
     else->R.drawable.art_religions
 }
 
+/**
+ * Cache de processo dos bitmaps já descodificados (1280×853, ~4,4 MB cada).
+ * Sem ela, o `painterResource` dentro da LazyColumn do Início volta a carregar o
+ * WebP sempre que um cartão é recomposto ao entrar no ecrã — descodificação e
+ * upload para a GPU repetidos a meio do scroll são a causa do lag. Com a cache,
+ * cada ilustração é descodificada UMA vez por processo e reutilizada em todos
+ * os scrolls; o LruCache (80 MB, chega para as 17) despeja as menos usadas se
+ * houver pressão de memória. Os pixéis são os mesmos: descodificação nativa do
+ * recurso nodpi, sem reamostragem, e o recorte continua a ser o ContentScale.Crop.
+ */
+private val artBitmapCache=object:LruCache<String,ImageBitmap>(80*1024*1024){
+    override fun sizeOf(key:String,value:ImageBitmap):Int=value.asAndroidBitmap().byteCount
+}
+
+private fun decodedArtwork(context:Context,topicId:String):ImageBitmap{
+    artBitmapCache.get(topicId)?.let{return it}
+    val bitmap=BitmapFactory.decodeResource(context.resources,topicArtResource(topicId))
+    val image=checkNotNull(bitmap){"Ilustração em falta: $topicId"}.asImageBitmap()
+    artBitmapCache.put(topicId,image)
+    return image
+}
+
 @Composable fun TopicArtwork(topicId:String,modifier:Modifier=Modifier,contentDescription:String?=null){
-    Image(painter=painterResource(topicArtResource(topicId)),contentDescription=contentDescription,contentScale=ContentScale.Crop,modifier=modifier)
+    val context=LocalContext.current
+    val bitmap=remember(topicId){decodedArtwork(context,topicId)}
+    Image(bitmap=bitmap,contentDescription=contentDescription,contentScale=ContentScale.Crop,modifier=modifier)
 }
 
 /** Faixa ilustrada com título sobre gradiente, para heróis e cabeçalhos de artigo. */

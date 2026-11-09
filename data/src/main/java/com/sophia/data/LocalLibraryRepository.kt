@@ -26,17 +26,29 @@ class LocalLibraryRepository(private val context:Context,private val db:SophiaDa
     private val directory get()=File(context.filesDir,"books").apply{mkdirs()}
     override val snapshot=combine(db.library().files(),db.library().collections(),db.catalog().observeWorks()){files,collections,works->
         val titles=works.associate{it.work.id to it.work.title}
-        LibrarySnapshot(files.map{mapFile(it,titles[it.edition.workId]?:"Obra importada")},collections.map{StudyCollection(it.collection.id,it.collection.name,it.collection.readingList,it.works.sortedWith(compareBy<CollectionWorkEntity>{it.position}.thenBy{it.workId}).map{it.workId})})
+        val traditionsByWork=works.associate{it.work.id to it.traditions.map{tradition->tradition.id}}
+        LibrarySnapshot(files.map{mapFile(it,titles[it.edition.workId]?:"Obra importada",traditionsByWork[it.edition.workId]?:emptyList())},collections.map{StudyCollection(it.collection.id,it.collection.name,it.collection.readingList,it.works.sortedWith(compareBy<CollectionWorkEntity>{it.position}.thenBy{it.workId}).map{it.workId})})
     }
-    private fun mapFile(row:FileRelation,title:String):LibraryFile {val p=row.progress.firstOrNull();return LibraryFile(row.file.id,row.edition.workId,title,row.file.displayName.ifBlank{"Ficheiro importado"},row.file.mimeType,row.file.sizeBytes?:0,row.file.sha256.orEmpty(),row.file.rightsStatus,row.file.addedAt,p?.locatorJson?.let{runCatching{LocationCodec.decode(it)}.getOrNull()},p?.progressPermille?:0,p?.updatedAt?:0)}
-    override suspend fun file(id:String):LibraryFile {val row=db.library().fileOnce(id)?:error("O ficheiro já não existe na biblioteca.");return mapFile(row,db.library().workTitle(row.edition.workId)?:"Obra importada")}
+    private fun mapFile(row:FileRelation,title:String,traditionIds:List<String> = emptyList()):LibraryFile {val p=row.progress.firstOrNull();return LibraryFile(row.file.id,row.edition.workId,title,row.file.displayName.ifBlank{"Ficheiro importado"},row.file.mimeType,row.file.sizeBytes?:0,row.file.sha256.orEmpty(),row.file.rightsStatus,row.file.addedAt,p?.locatorJson?.let{runCatching{LocationCodec.decode(it)}.getOrNull()},p?.progressPermille?:0,p?.updatedAt?:0,traditionIds)}
+    override suspend fun file(id:String):LibraryFile {val row=db.library().fileOnce(id)?:error("O ficheiro já não existe na biblioteca.");return mapFile(row,db.library().workTitle(row.edition.workId)?:"Obra importada",db.library().workTraditions(row.edition.workId))}
     suspend fun localFile(id:String):File=withContext(Dispatchers.IO){val row=db.library().fileOnce(id)?:error("O ficheiro já não existe na biblioteca.");val result=File(Uri.parse(row.file.uri).path?:error("Localização inválida."));require(result.canonicalFile.parentFile==directory.canonicalFile && result.isFile){"O ficheiro local não está disponível. Volte a importá-lo."};result}
     suspend fun document(id:String):BookDocument=withContext(Dispatchers.IO){val info=file(id);val f=localFile(id);when(info.mimeType){"application/epub+zip"->BookDocuments.epub(f);"text/plain"->BookDocuments.text(f);"application/pdf"->{ParcelFileDescriptor.open(f,ParcelFileDescriptor.MODE_READ_ONLY).use{descriptor->PdfRenderer(descriptor).use{pdf->BookDocument(FileMetadata(),(0 until pdf.pageCount).map{ReadingUnit("page:$it","Página ${it+1}")},false)}}};else->error("Formato não suportado.")}}
     suspend fun pdfPage(id:String,index:Int):android.graphics.Bitmap=withContext(Dispatchers.IO){
         val f=localFile(id)
         ParcelFileDescriptor.open(f,ParcelFileDescriptor.MODE_READ_ONLY).use{pfd->PdfRenderer(pfd).use{renderer->
             require(index in 0 until renderer.pageCount)
-            renderer.openPage(index).use{page->val scale=minOf(1600.0/page.width,2400.0/page.height);val bitmap=android.graphics.Bitmap.createBitmap((page.width*scale).toInt().coerceAtLeast(1),(page.height*scale).toInt().coerceAtLeast(1),android.graphics.Bitmap.Config.ARGB_8888);bitmap.eraseColor(android.graphics.Color.WHITE);page.render(bitmap,null,null,PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);bitmap}
+            renderer.openPage(index).use{page->
+                // Renderizar acima da largura típica do ecrã do telemóvel (1080 px) para o texto
+                // ampliado no leitor não desfocar: teto de 2200×3100 px por página. Como a escala
+                // é limitada pelos dois tetos em simultâneo, o bitmap nunca excede esse retângulo
+                // (≈6,8 Mpx, ~27 MB em ARGB_8888) e só existe uma página renderizada de cada vez —
+                // seguro para um telemóvel de gama média. Fechos (.use) inalterados.
+                val scale=minOf(2200.0/page.width,3100.0/page.height)
+                val bitmap=android.graphics.Bitmap.createBitmap((page.width*scale).toInt().coerceAtLeast(1),(page.height*scale).toInt().coerceAtLeast(1),android.graphics.Bitmap.Config.ARGB_8888)
+                bitmap.eraseColor(android.graphics.Color.WHITE)
+                page.render(bitmap,null,null,PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                bitmap
+            }
         }}
     }
     /** Derived thumbnails only: no Room schema change and no remote image requests. */
@@ -77,6 +89,8 @@ class LocalLibraryRepository(private val context:Context,private val db:SophiaDa
     }}
     override suspend fun importFile(request:ImportRequest):ImportResult=mutex.withLock{withContext(Dispatchers.IO){
         require(request.authorised){"Confirme que tem autorização para utilizar o ficheiro."}
+        val traditionId=request.traditionId
+        if(traditionId!=null)require(HistoricalEncyclopedia.articles.any{it.id==traditionId}){"Tradição desconhecida. Escolhe uma das tradições da lista."}
         val source=Uri.parse(request.sourceUri);require(source.scheme=="content"){"Escolha o ficheiro através do seletor Android."}
         val originalName=context.contentResolver.query(source,arrayOf(OpenableColumns.DISPLAY_NAME),null,null,null)?.use{cursor->if(cursor.moveToFirst())cursor.getString(0)else null}?:"Ficheiro importado"
         val id=UUID.randomUUID().toString();val temp=File(directory,"$id.part");var target:File?=null;var committed=false
@@ -89,7 +103,10 @@ class LocalLibraryRepository(private val context:Context,private val db:SophiaDa
             val mime=when{header.toString(Charsets.US_ASCII)=="%PDF-"->"application/pdf";header[0]==80.toByte()&&header[1]==75.toByte()->"application/epub+zip";originalName.substringAfterLast('.',"").lowercase()=="txt"||context.contentResolver.getType(source)=="text/plain"->"text/plain";else->throw IllegalArgumentException("Ficheiro incompatível. Escolha EPUB, PDF ou TXT.")}
             val metadata=when(mime){"application/epub+zip"->BookDocuments.epub(temp).metadata;"text/plain"->BookDocuments.text(temp).metadata;else->{try{ParcelFileDescriptor.open(temp,ParcelFileDescriptor.MODE_READ_ONLY).use{pfd->PdfRenderer(pfd).use{require(it.pageCount>0){"O PDF não contém páginas."}}}}catch(e:SecurityException){throw IllegalArgumentException("PDF protegido por palavra-passe não suportado. Importe uma cópia autorizada sem proteção.")};FileMetadata()}}
             val hash=digest.digest().joinToString(""){"%02x".format(it)}
-            db.library().sameHash(hash).firstOrNull{request.workId==null||it.edition.workId==request.workId}?.let{return@withContext ImportResult(it.file.id,it.edition.workId,true)}
+            db.library().sameHash(hash).firstOrNull{request.workId==null||it.edition.workId==request.workId}?.let{existing->
+                if(traditionId!=null)db.withTransaction{ensureTradition(traditionId);db.catalog().insertWorkTraditions(listOf(WorkTraditionEntity(existing.edition.workId,traditionId)))}
+                return@withContext ImportResult(existing.file.id,existing.edition.workId,true)
+            }
             target=File(directory,"$id.${when(mime){"application/pdf"->"pdf";"text/plain"->"txt";else->"epub"}}")
             require(temp.renameTo(target)){"Não foi possível guardar a cópia local."}
             val workId=request.workId?:UUID.randomUUID().toString();val editionId=UUID.randomUUID().toString();val now=System.currentTimeMillis()
@@ -99,10 +116,21 @@ class LocalLibraryRepository(private val context:Context,private val db:SophiaDa
                 db.catalog().insertEdition(EditionEntity(editionId,workId,label="Importação pessoal · $originalName",publisher=metadata.publisher,publicationYear=metadata.year,language=metadata.language,rightsStatus="USER_AUTHORISED_NOT_VERIFIED"))
                 metadata.authors.forEach{name->val personId=UUID.randomUUID().toString();db.catalog().insertPeople(listOf(PersonEntity(personId,name)));db.catalog().insertEditionCredit(EditionContributorEntity(editionId,personId,"AUTHOR"))}
                 db.catalog().insertFile(BookFileEntity(id,editionId,Uri.fromFile(target).toString(),mime,hash,"USER_AUTHORISED_NOT_VERIFIED",sizeBytes=size,displayName=originalName,addedAt=now))
+                if(traditionId!=null){ensureTradition(traditionId);db.catalog().insertWorkTraditions(listOf(WorkTraditionEntity(workId,traditionId)))}
             }
             committed=true;ImportResult(id,workId,false)
         }finally{temp.delete();if(!committed)target?.delete()}
     }}
+    /** Nem todos os artigos têm linha semeada em traditions (ex.: Ateísmo e as áreas de estudo); cria-a a partir do artigo para a chave estrangeira de work_traditions ser válida. Insert IGNORE: nunca substitui uma tradição existente. */
+    private suspend fun ensureTradition(traditionId:String){val article=HistoricalEncyclopedia.articles.firstOrNull{it.id==traditionId}?:return;db.catalog().insertTraditions(listOf(TraditionEntity(article.id,article.title,article.description)))}
+    override suspend fun setWorkTradition(workId:String,traditionId:String?){
+        if(traditionId!=null)require(HistoricalEncyclopedia.articles.any{it.id==traditionId}){"Tradição desconhecida. Escolhe uma das tradições da lista."}
+        require(db.library().workTitle(workId)!=null){"Esta obra já não existe na biblioteca."}
+        db.withTransaction{
+            db.library().deleteWorkTraditions(workId)
+            if(traditionId!=null){ensureTradition(traditionId);db.catalog().insertWorkTraditions(listOf(WorkTraditionEntity(workId,traditionId)))}
+        }
+    }
     override suspend fun savePosition(fileId:String,location:ReadingLocation,progressPermille:Int){require(progressPermille in 0..1000);db.catalog().saveProgress(ReadingProgressEntity(fileId,LocationCodec.encode(location),progressPermille,System.currentTimeMillis()))}
     override fun bookmarks(fileId:String)=db.library().bookmarks(fileId).map{rows->rows.map{Bookmark(it.id,it.fileId,it.label,LocationCodec.decode(it.locatorJson),it.createdAt)}}
     override suspend fun addBookmark(fileId:String,label:String,location:ReadingLocation){db.library().addBookmark(BookmarkEntity(UUID.randomUUID().toString(),fileId,LocationCodec.encode(location),label.take(200),System.currentTimeMillis()))}

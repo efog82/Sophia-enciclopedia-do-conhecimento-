@@ -94,10 +94,10 @@ import com.sophia.enciclopedia.*
             }
         }}
         if(themeOpen)AlertDialog(onDismissRequest={themeOpen=false},title={Text("Aspeto da aplicação")},text={Column{ThemeMode.entries.forEach{mode->TextButton(onClick={vm.theme(mode);themeOpen=false},modifier=Modifier.fillMaxWidth().testTag("theme-${mode.name}")){Text((if(mode==state.theme)"✓  " else "")+when(mode){ThemeMode.SYSTEM->"Seguir o sistema";ThemeMode.LIGHT->"Claro";ThemeMode.DARK->"Escuro"})}}}},confirmButton={TextButton(onClick={themeOpen=false}){Text("Fechar")}})
-        if(traditionsOpen)TraditionsDialog(state,historyTopic,{traditionsOpen=false},{id->traditionsOpen=false;vm.openBook(id)},{id->traditionsOpen=false;vm.setFilters{it.copy(researchQuery="",researchTradition=id,author=null)};vm.navigate(Section.RESEARCH)},{id->traditionsOpen=false;vm.focusBaseBook(id)},{tid->passagesRepo.passagesForTradition(tid)},{p->traditionsOpen=false;PassageDeepLink.offer(p.bookId,p.unitIndex)})
+        if(traditionsOpen)TraditionsDialog(state,historyTopic,{traditionsOpen=false},{id->traditionsOpen=false;vm.openBook(id)},{id->traditionsOpen=false;vm.setFilters{it.copy(researchQuery="",researchTradition=id,author=null)};vm.navigate(Section.RESEARCH)},{id->traditionsOpen=false;vm.focusBaseBook(id)},{tid->passagesRepo.passagesForTradition(tid)},{p->traditionsOpen=false;PassageDeepLink.offer(p.bookId,p.unitIndex)},library=libraryState.data,onReadFile=read)
         if(collectionsOpen)CollectionsDialog(state,libraryState.data,libraryVm,{collectionsOpen=false},{id->collectionsOpen=false;vm.openBook(id)})
-        state.books.firstOrNull{it.id==work}?.let{book->BookDetails(book,book.id in busy,{vm.closeBook()},{vm.toggleFavorite(book)},{vm.startNote(workId=book.id)},libraryState.data,libraryVm,{pick(book.id)},read)}
-        importUri?.let{uri->ImportDialog(uri,importWork,state.books,importing,importMessage,{importUri=null},libraryVm::importFile)}
+        state.books.firstOrNull{it.id==work}?.let{book->BookDetails(book,book.id in busy,{vm.closeBook()},{vm.toggleFavorite(book)},{vm.startNote(workId=book.id)},libraryState.data,libraryVm,{pick(book.id)},read,articles=state.histories)}
+        importUri?.let{uri->ImportDialog(uri,importWork,state.books,state.histories,importing,importMessage,{importUri=null},libraryVm::importFile)}
         importMatch?.let{bb->AlertDialog(onDismissRequest={importMatch=null;importMatchFile=null},title={Text("Livro-base correspondente")},text={Text("O ficheiro que importaste corresponde ao livro-base «${bb.title}». Queres ver a referência — resumo, estrutura e direitos — ou abrir o livro importado?")},confirmButton={TextButton(onClick={importMatch=null;importMatchFile=null;vm.focusBaseBook(bb.id);vm.navigate(Section.REFERENCES)},modifier=Modifier.testTag("import-match-reference")){Text("Ver referência")}},dismissButton={TextButton(onClick={val f=importMatchFile;importMatch=null;importMatchFile=null;if(f!=null)vm.openBook(f.workId)}){Text("Abrir o livro")}})}
         if(importUri==null&&importMessage!=null)AlertDialog(onDismissRequest=libraryVm::clearMessage,title={Text("Biblioteca")},text={Text(importMessage!!)},confirmButton={TextButton(onClick=libraryVm::clearMessage){Text("Fechar")}})
         if(libraryState.error!=null)AlertDialog(onDismissRequest=libraryVm::retry,title={Text("Dados da biblioteca")},text={Text(libraryState.error!!)},confirmButton={TextButton(onClick=libraryVm::retry){Text("Tentar reabrir")}})
@@ -107,11 +107,11 @@ import com.sophia.enciclopedia.*
     }
 }
 
-@Composable private fun BookDetails(book:Book,busy:Boolean,onClose:()->Unit,onFavorite:()->Unit,onNote:()->Unit,library:LibrarySnapshot,libraryVm:LibraryViewModel,onImport:()->Unit,onRead:(LibraryFile)->Unit){
+@Composable private fun BookDetails(book:Book,busy:Boolean,onClose:()->Unit,onFavorite:()->Unit,onNote:()->Unit,library:LibrarySnapshot,libraryVm:LibraryViewModel,onImport:()->Unit,onRead:(LibraryFile)->Unit,articles:List<HistoryArticle> = emptyList()){
     Dialog(onDismissRequest=onClose,properties=DialogProperties(usePlatformDefaultWidth=false)){
         Surface(Modifier.fillMaxWidth().widthIn(max=760.dp).fillMaxHeight(.95f).padding(12.dp),shape=MaterialTheme.shapes.large){Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState()).testTag("book-details"),verticalArrangement=Arrangement.spacedBy(16.dp)){
             TextButton(onClick=onClose){Icon(Icons.Outlined.Close,null);Text("Fechar detalhes")}
-            BookCover(book.title,book.traditions.firstOrNull()?.id,modifier=Modifier.width(130.dp).height(184.dp))
+            BookCover(book.title,book.traditions.firstOrNull()?.id,author=book.contributors.firstOrNull()?.name,modifier=Modifier.width(130.dp).height(184.dp))
             Text(book.title,style=MaterialTheme.typography.headlineMedium)
             Text(book.description,style=MaterialTheme.typography.bodyLarge)
             Text("Autores e atribuições",style=MaterialTheme.typography.titleMedium)
@@ -124,6 +124,11 @@ import com.sophia.enciclopedia.*
             if(book.editions.isEmpty())Text("Nenhuma edição, tradução ou ficheiro selecionado. Editora, data da edição e direitos de utilização não verificados. Não existe um livro disponível para leitura nesta referência.")
             book.editions.forEach{edition->OutlinedCard{Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){Text(edition.label?:"Edição sem designação verificada");Text("Idioma: ${edition.language?:"Não verificado"} · Ano da edição: ${edition.year?:"Não verificado"}");Text("Editora: ${edition.publisher?:"Não verificada"}");edition.contributors.forEach{Text("${it.name} · ${it.role.label}")};Text(if(edition.rightsStatus=="USER_AUTHORISED_NOT_VERIFIED")"Uso pessoal autorizado por declaração do utilizador; licença não verificada pela Sophia." else "Direitos da edição concreta: não verificados.");edition.sourceUrl?.let{url->Text(url,style=MaterialTheme.typography.bodySmall)}}}}
             library.files.filter{it.workId==book.id}.forEach{file->FileCard(file){onRead(file)}}
+            if(library.files.any{it.workId==book.id&&it.rightsStatus=="USER_AUTHORISED_NOT_VERIFIED"}){
+                Text("Tradição do livro importado",style=MaterialTheme.typography.titleMedium)
+                Text("Com uma tradição atribuída, este livro aparece também no separador «Livros-base» dessa tradição, além de ficar na Biblioteca. Sem tradição, fica só na Biblioteca.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                SelectFilter("Tradição",book.traditions.firstOrNull()?.id,articles.map{it.id to it.title},{libraryVm.setWorkTradition(book.id,it)},Modifier.fillMaxWidth().testTag("book-tradition"),emptyLabel="Sem tradição — só na Biblioteca")
+            }
             Button(onClick=onImport,modifier=Modifier.fillMaxWidth().testTag("book-import")){Text("Importar ficheiro para esta obra")}
             Text("Coleções e listas",style=MaterialTheme.typography.titleMedium)
             if(library.collections.isEmpty())Text("Cria uma coleção na Biblioteca para organizar esta obra.")

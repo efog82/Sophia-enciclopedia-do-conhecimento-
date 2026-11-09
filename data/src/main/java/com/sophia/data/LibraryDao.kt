@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.Flow
     @Transaction @Query("SELECT * FROM book_files WHERE id=:id") abstract suspend fun fileOnce(id:String):FileRelation?
     @Transaction @Query("SELECT * FROM book_files WHERE sha256=:hash") abstract suspend fun sameHash(hash:String):List<FileRelation>
     @Query("SELECT title FROM works WHERE id=:id") abstract suspend fun workTitle(id:String):String?
+    @Query("SELECT traditionId FROM work_traditions WHERE workId=:workId") abstract suspend fun workTraditions(workId:String):List<String>
+    @Query("DELETE FROM work_traditions WHERE workId=:workId") abstract suspend fun deleteWorkTraditions(workId:String)
     @Query("UPDATE traditions SET historicalContext=:history,concepts=:concepts,sources=:sources WHERE id=:id") abstract suspend fun updateTradition(id:String,history:String,concepts:String,sources:String)
     @Query("SELECT * FROM bookmarks WHERE fileId=:id ORDER BY createdAt DESC") abstract fun bookmarks(id:String):Flow<List<BookmarkEntity>>
     @Insert(onConflict=OnConflictStrategy.IGNORE) abstract suspend fun addBookmark(value:BookmarkEntity)

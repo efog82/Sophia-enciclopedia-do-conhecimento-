@@ -68,15 +68,17 @@ import com.sophia.enciclopedia.*
         AlertDialog(onDismissRequest={delete=null},title={Text("Eliminar coleção?")},text={Text("Apenas a organização será eliminada. As obras, ficheiros, favoritos e notas serão conservados.")},confirmButton={TextButton(onClick={vm.deleteCollection(id);delete=null}){Text("Eliminar")}},dismissButton={TextButton(onClick={delete=null}){Text("Cancelar")}})
     }
 }
-@Composable fun ImportDialog(uri:String,initialWork:String?,books:List<Book>,busy:Boolean,message:String?,onClose:()->Unit,onImport:(ImportRequest)->Unit){
-    var work by rememberSaveable(uri){mutableStateOf(initialWork)};var title by rememberSaveable(uri){mutableStateOf("")};var authorised by rememberSaveable(uri){mutableStateOf(false)}
+@Composable fun ImportDialog(uri:String,initialWork:String?,books:List<Book>,articles:List<HistoryArticle> = emptyList(),busy:Boolean,message:String?,onClose:()->Unit,onImport:(ImportRequest)->Unit){
+    var work by rememberSaveable(uri){mutableStateOf(initialWork)};var title by rememberSaveable(uri){mutableStateOf("")};var authorised by rememberSaveable(uri){mutableStateOf(false)};var tradition by rememberSaveable(uri){mutableStateOf<String?>(null)}
     LibraryDialog("Importar para leitura offline",{if(!busy)onClose()}){
         Text("Será criada uma cópia privada do ficheiro escolhido. O original não é alterado. A Sophia não verifica nem transfere os direitos de autor.")
         SelectFilter("Associar a uma obra",work,books.map{it.id to it.title},{if(!busy)work=it},emptyLabel="Criar obra a partir do ficheiro")
+        SelectFilter("Tradição do livro (opcional)",tradition,articles.map{it.id to it.title},{if(!busy)tradition=it},emptyLabel="Sem tradição — só na Biblioteca")
+        Text("Com uma tradição atribuída, o livro aparece também no separador «Livros-base» dessa tradição. Podes atribuir ou mudar a tradição mais tarde, nos detalhes do livro.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
         if(work==null)OutlinedTextField(title,{if(it.length<=300)title=it},label={Text("Título (opcional)")},supportingText={Text("Se vazio, usa o título declarado no EPUB ou o nome do ficheiro.")},modifier=Modifier.fillMaxWidth())
         Row(verticalAlignment=Alignment.CenterVertically){Checkbox(authorised,{if(!busy)authorised=it},enabled=!busy,modifier=Modifier.testTag("import-rights"));Text("Confirmo que tenho autorização para utilizar este ficheiro para estudo pessoal.",Modifier.weight(1f))}
         message?.let{Text(it,color=MaterialTheme.colorScheme.error)}
-        Button(onClick={onImport(ImportRequest(uri,work,title,authorised))},enabled=authorised&&!busy,modifier=Modifier.fillMaxWidth().testTag("confirm-import")){Text(if(busy)"A copiar e validar…" else "Importar")}
+        Button(onClick={onImport(ImportRequest(uri,work,title,authorised,tradition))},enabled=authorised&&!busy,modifier=Modifier.fillMaxWidth().testTag("confirm-import")){Text(if(busy)"A copiar e validar…" else "Importar")}
         if(busy)LinearProgressIndicator(Modifier.fillMaxWidth())
     }
 }

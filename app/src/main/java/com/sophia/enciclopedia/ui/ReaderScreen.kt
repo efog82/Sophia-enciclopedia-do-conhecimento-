@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.webkit.*
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -20,9 +21,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -64,7 +69,56 @@ import java.io.ByteArrayInputStream
     if(message!=null)AlertDialog(onDismissRequest=vm::clearMessage,title={Text("Leitura")},text={Text(message!!)},confirmButton={TextButton(onClick=vm::clearMessage){Text("Fechar")}})
     }
 }
-@Composable private fun PdfSurface(bitmap:Bitmap,dark:Boolean){var scale by remember(bitmap){mutableFloatStateOf(1f)};var offset by remember(bitmap){mutableStateOf(Offset.Zero)};val transform=rememberTransformableState{zoom,pan,_->scale=(scale*zoom).coerceIn(1f,4f);offset=if(scale<=1f)Offset.Zero else (offset+pan).let{Offset(it.x.coerceIn(-1800f,1800f),it.y.coerceIn(-2400f,2400f))}};Box(Modifier.fillMaxSize().transformable(transform)){Image(bitmap.asImageBitmap(),"Página PDF",Modifier.fillMaxSize().graphicsLayer{scaleX=scale;scaleY=scale;translationX=offset.x;translationY=offset.y},contentScale=ContentScale.Fit,colorFilter=if(dark)ColorFilter.colorMatrix(ColorMatrix(floatArrayOf(-1f,0f,0f,0f,255f,0f,-1f,0f,0f,255f,0f,0f,-1f,0f,255f,0f,0f,0f,1f,0f)))else null);if(scale>1f)TextButton(onClick={scale=1f;offset=Offset.Zero},modifier=Modifier.align(Alignment.BottomCenter)){Text("Repor zoom")}}}
+private const val PdfMinScale=1f
+private const val PdfMaxScale=6f
+private const val PdfDoubleTapScale=2.5f
+
+@Composable private fun PdfSurface(bitmap:Bitmap,dark:Boolean){
+    var scale by remember(bitmap){mutableFloatStateOf(1f)}
+    var offset by remember(bitmap){mutableStateOf(Offset.Zero)}
+    var containerSize by remember{mutableStateOf(IntSize.Zero)}
+    // Retângulo que a página ocupa dentro do contentor com ContentScale.Fit: a página é
+    // centrada e dimensionada pelo menor dos dois fatores (largura/altura), como o Fit faz.
+    // Em retrato a página fica limitada pela largura (sobra altura); em paisagem, pela altura.
+    fun fittedSize():Size?{
+        if(containerSize.width<=0||containerSize.height<=0||bitmap.width<=0||bitmap.height<=0)return null
+        val fit=minOf(containerSize.width.toFloat()/bitmap.width,containerSize.height.toFloat()/bitmap.height)
+        return Size(bitmap.width*fit,bitmap.height*fit)
+    }
+    // Maior deslocamento admissível para uma dada escala: metade do excesso da página
+    // escalada face ao contentor, por eixo (a graphicsLayer escala em torno do centro).
+    // Quando a página escalada ainda cabe num eixo, o limite é 0: fica centrada nesse eixo,
+    // nunca foge do ecrã nem fica presa fora de vista. Sem constantes fixas de píxeis.
+    fun clampOffset(candidate:Offset,forScale:Float):Offset{
+        val fitted=fittedSize()?:return Offset.Zero
+        val maxX=((fitted.width*forScale-containerSize.width)/2f).coerceAtLeast(0f)
+        val maxY=((fitted.height*forScale-containerSize.height)/2f).coerceAtLeast(0f)
+        return Offset(candidate.x.coerceIn(-maxX,maxX),candidate.y.coerceIn(-maxY,maxY))
+    }
+    val transform=rememberTransformableState{zoom,pan,_->
+        val newScale=(scale*zoom).coerceIn(PdfMinScale,PdfMaxScale)
+        scale=newScale
+        offset=if(newScale<=PdfMinScale)Offset.Zero else clampOffset(offset+pan,newScale)
+    }
+    // Rodar o telemóvel (ou outra mudança de tamanho do contentor) invalida o deslocamento
+    // guardado, porque os limites dependem do tamanho real: revalidar com a nova geometria.
+    LaunchedEffect(containerSize,scale){offset=if(scale<=PdfMinScale)Offset.Zero else clampOffset(offset,scale)}
+    Box(Modifier.fillMaxSize().onSizeChanged{containerSize=it}.transformable(transform).pointerInput(bitmap){detectTapGestures(onDoubleTap={tap->
+        // Não há gestos de toque na superfície para virar página (a navegação é pelos botões
+        // Anterior/Seguinte fora do PdfSurface), por isso o toque duplo não entra em conflito:
+        // alterna entre 1× e 2,5×, ampliando em torno do ponto tocado.
+        if(scale>PdfMinScale){scale=PdfMinScale;offset=Offset.Zero}else{
+            val center=Offset(containerSize.width/2f,containerSize.height/2f)
+            val fromCenter=tap-center
+            val target=fromCenter-(fromCenter-offset)*(PdfDoubleTapScale/scale)
+            scale=PdfDoubleTapScale
+            offset=clampOffset(target,PdfDoubleTapScale)
+        }
+    })}){
+        Image(bitmap.asImageBitmap(),"Página PDF",Modifier.fillMaxSize().graphicsLayer{scaleX=scale;scaleY=scale;translationX=offset.x;translationY=offset.y},contentScale=ContentScale.Fit,colorFilter=if(dark)ColorFilter.colorMatrix(ColorMatrix(floatArrayOf(-1f,0f,0f,0f,255f,0f,-1f,0f,0f,255f,0f,0f,-1f,0f,255f,0f,0f,0f,1f,0f)))else null)
+        if(scale>1f)TextButton(onClick={scale=1f;offset=Offset.Zero},modifier=Modifier.align(Alignment.BottomCenter)){Text("Repor zoom")}
+    }
+}
 private class LocalBookWebView(context:android.content.Context):WebView(context){var onScroll:((Double)->Unit)?=null;var restoring=true;var loadedKey:String?=null;override fun onScrollChanged(l:Int,t:Int,oldl:Int,oldt:Int){super.onScrollChanged(l,t,oldl,oldt);if(!restoring){val range=(contentHeight*resources.displayMetrics.density-height).coerceAtLeast(0f);if(range>0)onScroll?.invoke((t/range).toDouble().coerceIn(0.0,1.0))}}}
 private data class LocalHtmlPage(val key:String,val html:String?=null,val error:String?=null)
 @Composable private fun EpubSurface(state:ReaderState,font:Int,dark:Boolean,vm:ReaderViewModel){

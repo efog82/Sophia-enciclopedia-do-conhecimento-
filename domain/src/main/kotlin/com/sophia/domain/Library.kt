@@ -6,16 +6,18 @@ import kotlinx.coroutines.flow.Flow
 data class ReadingLocation(val unit:Int=0,val fraction:Double=0.0) {
     init { require(unit>=0);require(fraction.isFinite() && fraction in 0.0..1.0) }
 }
-data class LibraryFile(val id:String,val workId:String,val title:String,val displayName:String,val mimeType:String,val sizeBytes:Long,val sha256:String,val rightsStatus:String,val addedAt:Long,val location:ReadingLocation?=null,val progressPermille:Int=0,val updatedAt:Long=0)
+data class LibraryFile(val id:String,val workId:String,val title:String,val displayName:String,val mimeType:String,val sizeBytes:Long,val sha256:String,val rightsStatus:String,val addedAt:Long,val location:ReadingLocation?=null,val progressPermille:Int=0,val updatedAt:Long=0,val traditionIds:List<String> = emptyList())
 data class Bookmark(val id:String,val fileId:String,val label:String,val location:ReadingLocation,val createdAt:Long)
 data class StudyCollection(val id:String,val name:String,val readingList:Boolean,val workIds:List<String>)
 data class LibrarySnapshot(val files:List<LibraryFile> = emptyList(),val collections:List<StudyCollection> = emptyList())
-data class ImportRequest(val sourceUri:String,val workId:String?=null,val title:String="",val authorised:Boolean=false)
+data class ImportRequest(val sourceUri:String,val workId:String?=null,val title:String="",val authorised:Boolean=false,val traditionId:String?=null)
 data class ImportResult(val fileId:String,val workId:String,val duplicate:Boolean)
 data class BundledSearchHit(val fileId:String,val workId:String,val bookTitle:String,val unit:Int,val unitTitle:String,val snippet:String)
 interface LibraryRepository {
     val snapshot:Flow<LibrarySnapshot>
     suspend fun importFile(request:ImportRequest):ImportResult
+    /** Substitui a tradição atribuída a uma obra importada; null remove a atribuição (fica só na Biblioteca). */
+    suspend fun setWorkTradition(workId:String,traditionId:String?)
     suspend fun installBundledBook(book:BaseBook):ImportResult
     suspend fun searchBundled(query:String):List<BundledSearchHit>
     suspend fun file(id:String):LibraryFile

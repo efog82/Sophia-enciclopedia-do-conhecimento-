@@ -40,7 +40,7 @@ import com.sophia.domain.Book
 @Composable fun BookCard(book:Book,busy:Boolean=false,onOpen:()->Unit,onFavorite:()->Unit,showFavorite:Boolean=true){
     Card(Modifier.fillMaxWidth().testTag("book-${book.id}").clickable(onClick=onOpen),shape=RoundedCornerShape(20.dp),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface)){
         Row(Modifier.padding(14.dp),verticalAlignment=Alignment.CenterVertically){
-            BookCover(book.title,book.traditions.firstOrNull()?.id,modifier=Modifier.width(72.dp).height(104.dp))
+            BookCover(book.title,book.traditions.firstOrNull()?.id,author=book.contributors.firstOrNull()?.name,modifier=Modifier.width(72.dp).height(104.dp))
             Column(Modifier.weight(1f).padding(start=12.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){
                 Text(book.title,style=MaterialTheme.typography.titleSmall,maxLines=2,overflow=TextOverflow.Ellipsis)
                 Text(book.contributorLabel,style=MaterialTheme.typography.bodySmall,maxLines=2,overflow=TextOverflow.Ellipsis,color=MaterialTheme.colorScheme.onSurfaceVariant)
@@ -79,7 +79,7 @@ fun BaseBook.statusLine():String = when {
 @Composable fun BaseBookCard(book:BaseBook,traditionName:String,onOpen:()->Unit){
     Card(Modifier.fillMaxWidth().testTag("basebook-${book.id}").clickable(onClick=onOpen),shape=RoundedCornerShape(20.dp),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface)){
         Row(Modifier.padding(14.dp),verticalAlignment=Alignment.CenterVertically){
-            BookCover(book.title,book.traditionId,modifier=Modifier.width(72.dp).height(104.dp))
+            BookCover(book.title,book.traditionId,author=book.author,modifier=Modifier.width(72.dp).height(104.dp))
             Column(Modifier.weight(1f).padding(start=12.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){
                 Text(book.title,style=MaterialTheme.typography.titleSmall,maxLines=2,overflow=TextOverflow.Ellipsis)
                 Text(book.author+(book.year?.let{" · $it"}?:""),style=MaterialTheme.typography.bodySmall,maxLines=2,overflow=TextOverflow.Ellipsis,color=MaterialTheme.colorScheme.onSurfaceVariant)
