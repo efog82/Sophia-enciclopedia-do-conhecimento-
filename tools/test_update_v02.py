@@ -52,9 +52,9 @@ def main():
         assert (after/'files/books/ci-update.txt').read_bytes()==text
         assert preferences=={str(p.relative_to(after)):p.read_bytes() for p in (after/'files/datastore').glob('*.preferences_pb')}
         installed=device.run('shell','dumpsys','package',PACKAGE).decode()
-        assert 'versionName=0.10.0' in installed
+        assert 'versionName=0.11.0' in installed
         device.start()
-        print('ATUALIZAÇÃO DIRETA v0.2.0 → v0.10.0 APROVADA: assinatura, tabelas Room, ficheiro, marcador, posição, notas, favoritos, coleção e preferências preservados.')
+        print('ATUALIZAÇÃO DIRETA v0.2.0 → v0.11.0 APROVADA: assinatura, tabelas Room, ficheiro, marcador, posição, notas, favoritos, coleção e preferências preservados.')
 
 
 if __name__=='__main__':main()
